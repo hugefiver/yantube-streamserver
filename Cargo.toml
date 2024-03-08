@@ -1,0 +1,11 @@
+[package]
+name = "streamserver"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.2", features = ["derive"] }
+config = "0.14.0"
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread", "sync", "io-std", "io-util"] }
+volo = "0.9.0"
+volo-grpc = "0.9.3"
