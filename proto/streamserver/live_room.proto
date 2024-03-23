@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package live_room;
+
+service LiveRoomService {
+  rpc CreateLiveRoom(CreateLiveRoomRequest) returns (LiveRoomResponse);
+  rpc UpdateLiveRoom(UpdateLiveRoomRequest) returns (LiveRoomResponse);
+}
+
+message CreateLiveRoomRequest {
+  string room_id = 1;
+}
+
+message UpdateLiveRoomRequest {
+  string room_id = 1;
+  bool is_open = 2;
+  string stream_url = 3;
+  string stream_auth_token = 4;
+}
+
+message LiveRoomResponse {
+  string room_id = 1;
+  bool is_open = 2;
+  string stream_url = 3;
+  string stream_auth_token = 4;
+}

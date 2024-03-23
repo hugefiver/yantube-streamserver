@@ -1,19 +1,43 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LiveRoomSeriveInfo {
+pub struct CreateLiveRoomRequest {
     #[prost(string, tag = "1")]
-    pub version: ::prost::alloc::string::String,
+    pub room_id: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateLiveRoomRequest {
+    #[prost(string, tag = "1")]
+    pub room_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub is_open: bool,
+    #[prost(string, tag = "3")]
+    pub stream_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stream_auth_token: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LiveRoomResponse {
+    #[prost(string, tag = "1")]
+    pub room_id: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub is_open: bool,
+    #[prost(string, tag = "3")]
+    pub stream_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub stream_auth_token: ::prost::alloc::string::String,
 }
 /// Generated client implementations.
-pub mod live_room_control_client {
+pub mod live_room_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
-    pub struct LiveRoomControlClient<T> {
+    pub struct LiveRoomServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl LiveRoomControlClient<tonic::transport::Channel> {
+    impl LiveRoomServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -24,7 +48,7 @@ pub mod live_room_control_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> LiveRoomControlClient<T>
+    impl<T> LiveRoomServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -42,7 +66,7 @@ pub mod live_room_control_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> LiveRoomControlClient<InterceptedService<T, F>>
+        ) -> LiveRoomServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -56,7 +80,7 @@ pub mod live_room_control_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            LiveRoomControlClient::new(InterceptedService::new(inner, interceptor))
+            LiveRoomServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -89,11 +113,11 @@ pub mod live_room_control_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        pub async fn service_info(
+        pub async fn create_live_room(
             &mut self,
-            request: impl tonic::IntoRequest<()>,
+            request: impl tonic::IntoRequest<super::CreateLiveRoomRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::LiveRoomSeriveInfo>,
+            tonic::Response<super::LiveRoomResponse>,
             tonic::Status,
         > {
             self.inner
@@ -107,32 +131,64 @@ pub mod live_room_control_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/control.LiveRoomControl/ServiceInfo",
+                "/live_room.LiveRoomService/CreateLiveRoom",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(GrpcMethod::new("control.LiveRoomControl", "ServiceInfo"));
+                .insert(GrpcMethod::new("live_room.LiveRoomService", "CreateLiveRoom"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_live_room(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateLiveRoomRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LiveRoomResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/live_room.LiveRoomService/UpdateLiveRoom",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("live_room.LiveRoomService", "UpdateLiveRoom"));
             self.inner.unary(req, path, codec).await
         }
     }
 }
 /// Generated server implementations.
-pub mod live_room_control_server {
+pub mod live_room_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with LiveRoomControlServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with LiveRoomServiceServer.
     #[async_trait]
-    pub trait LiveRoomControl: Send + Sync + 'static {
-        async fn service_info(
+    pub trait LiveRoomService: Send + Sync + 'static {
+        async fn create_live_room(
             &self,
-            request: tonic::Request<()>,
+            request: tonic::Request<super::CreateLiveRoomRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::LiveRoomSeriveInfo>,
+            tonic::Response<super::LiveRoomResponse>,
+            tonic::Status,
+        >;
+        async fn update_live_room(
+            &self,
+            request: tonic::Request<super::UpdateLiveRoomRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::LiveRoomResponse>,
             tonic::Status,
         >;
     }
     #[derive(Debug)]
-    pub struct LiveRoomControlServer<T: LiveRoomControl> {
+    pub struct LiveRoomServiceServer<T: LiveRoomService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
@@ -140,7 +196,7 @@ pub mod live_room_control_server {
         max_encoding_message_size: Option<usize>,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: LiveRoomControl> LiveRoomControlServer<T> {
+    impl<T: LiveRoomService> LiveRoomServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -192,9 +248,9 @@ pub mod live_room_control_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for LiveRoomControlServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for LiveRoomServiceServer<T>
     where
-        T: LiveRoomControl,
+        T: LiveRoomService,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -210,20 +266,26 @@ pub mod live_room_control_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/control.LiveRoomControl/ServiceInfo" => {
+                "/live_room.LiveRoomService/CreateLiveRoom" => {
                     #[allow(non_camel_case_types)]
-                    struct ServiceInfoSvc<T: LiveRoomControl>(pub Arc<T>);
-                    impl<T: LiveRoomControl> tonic::server::UnaryService<()>
-                    for ServiceInfoSvc<T> {
-                        type Response = super::LiveRoomSeriveInfo;
+                    struct CreateLiveRoomSvc<T: LiveRoomService>(pub Arc<T>);
+                    impl<
+                        T: LiveRoomService,
+                    > tonic::server::UnaryService<super::CreateLiveRoomRequest>
+                    for CreateLiveRoomSvc<T> {
+                        type Response = super::LiveRoomResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
-                        fn call(&mut self, request: tonic::Request<()>) -> Self::Future {
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CreateLiveRoomRequest>,
+                        ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as LiveRoomControl>::service_info(&inner, request).await
+                                <T as LiveRoomService>::create_live_room(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -235,7 +297,54 @@ pub mod live_room_control_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let inner = inner.0;
-                        let method = ServiceInfoSvc(inner);
+                        let method = CreateLiveRoomSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/live_room.LiveRoomService/UpdateLiveRoom" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateLiveRoomSvc<T: LiveRoomService>(pub Arc<T>);
+                    impl<
+                        T: LiveRoomService,
+                    > tonic::server::UnaryService<super::UpdateLiveRoomRequest>
+                    for UpdateLiveRoomSvc<T> {
+                        type Response = super::LiveRoomResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateLiveRoomRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as LiveRoomService>::update_live_room(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = UpdateLiveRoomSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
@@ -266,7 +375,7 @@ pub mod live_room_control_server {
             }
         }
     }
-    impl<T: LiveRoomControl> Clone for LiveRoomControlServer<T> {
+    impl<T: LiveRoomService> Clone for LiveRoomServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -278,7 +387,7 @@ pub mod live_room_control_server {
             }
         }
     }
-    impl<T: LiveRoomControl> Clone for _Inner<T> {
+    impl<T: LiveRoomService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(Arc::clone(&self.0))
         }
@@ -288,7 +397,7 @@ pub mod live_room_control_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: LiveRoomControl> tonic::server::NamedService for LiveRoomControlServer<T> {
-        const NAME: &'static str = "control.LiveRoomControl";
+    impl<T: LiveRoomService> tonic::server::NamedService for LiveRoomServiceServer<T> {
+        const NAME: &'static str = "live_room.LiveRoomService";
     }
 }
