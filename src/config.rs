@@ -5,13 +5,17 @@ pub mod stream;
 use anyhow::Context;
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Deserialize, Default)]
-#[serde(rename_all = "snake_case", default)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct AppConfig {
+    #[serde(default)]
     pub debug: bool,
 
+    #[serde(default)]
     pub log: log::LogConf,
+    #[serde(default)]
     pub server: server::ServerConf,
+    #[serde(default)]
     pub stream: stream::StreamConf,
 }
 

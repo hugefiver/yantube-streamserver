@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package control;
+
+import "google/protobuf/empty.proto";
+
+service LiveRoomControl {
+    rpc ServiceInfo(google.protobuf.Empty) returns (LiveRoomSeriveInfo);
+
+    rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse);
+    rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse);
+    rpc CloseRoom(CloseRoomRequest) returns (CloseRoomResponse);
+    rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse);
+}
+
+message LiveRoomSeriveInfo {
+    string version = 1;
+}
+
+message RoomConfig {
+
+}
+
+message CreateRoomRequest {
+    string room_id = 1;
+    RoomConfig config = 2;
+}
+
+message CreateRoomResponse {
+    
+}
