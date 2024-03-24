@@ -1,6 +1,7 @@
 use std::{fmt::Debug, fs, io, path::Path};
 
 use clap::Parser;
+use streamserver::app;
 use tracing::{debug, info, span, trace, warn, Level};
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::{
@@ -25,7 +26,7 @@ async fn main() {
     let log_file = if app_config.log.file.is_empty() {
         None
     } else {
-        Some(app_config.log.file)
+        Some(app_config.log.file.clone())
     };
 
     // init console logger
@@ -84,4 +85,6 @@ async fn main() {
     info!("info");
     debug!("debug");
     warn!("warn");
+
+    app::start_app(app_config).await;
 }

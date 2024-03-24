@@ -1,8 +1,10 @@
-use rsmpeg::avformat::AVFormatContextInput;
+use rsmpeg::avformat::AVIOContext;
 use tokio::select;
 use tracing::{debug, error, info};
 
-pub async fn rtmp_server(conf: &crate::config::AppConfig) -> anyhow::Result<Box<dyn std::error::Error>> {
+pub async fn rtmp_server(
+    conf: &crate::config::AppConfig,
+) -> anyhow::Result<Box<dyn std::error::Error>> {
     let listen_port = conf.stream.port;
     let listen_host = conf.stream.host.clone();
 
@@ -11,10 +13,10 @@ pub async fn rtmp_server(conf: &crate::config::AppConfig) -> anyhow::Result<Box<
         select! {
             tcp_stream = listener.accept() => {
                 if let Ok((stream, addr)) = tcp_stream {
+                    debug!("new connection from {:?}", addr);
 
-                debug!("new connection from {:?}", addr);
-                    let rtmp_stream = AVFormatContextInput::from_stream(stream);
                 } else {
+
                     error!("failed to accept connection");
                 }
 
