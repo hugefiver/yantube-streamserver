@@ -15,6 +15,8 @@ tracing = "0.1.40"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["json", "local-time"] }
 rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
+rtmp = "0.6.3"
+streamhub = "0.2.2"
 
 [build-dependencies]
 tonic-build = "0.11.0"
