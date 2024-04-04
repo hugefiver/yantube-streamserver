@@ -20,7 +20,7 @@ async fn main() {
     let app_config =
         streamserver::config::AppConfig::load_from_file(opt.config.as_deref(), "STREAMSERVER")
             .expect("Failed to load config");
-    println!("config: {:?}", app_config);
+    // println!("config: {:?}", app_config);
 
     let log_level = streamserver::config::log::str_to_level(&app_config.log.level);
     let log_file = if app_config.log.file.is_empty() {

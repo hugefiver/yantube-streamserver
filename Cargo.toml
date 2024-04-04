@@ -3,20 +3,39 @@ name = "streamserver"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["third/rtmp", "third/webrtc", "."]
+
+[workspace.dependencies]
+bytesio = "0.3.2"
+streamhub = "0.2.2"
+h264-decoder = "0.2.2"
+xflv = "0.4.2"
+commonlib = "0.1.1"
+
 [dependencies]
 anyhow = { version = "1.0.81", features = ["backtrace"] }
 clap = { version = "4.5.2", features = ["derive"] }
 config = { version = "0.14.0", features = ["toml"] }
 dirs = "5.0.1"
 serde = { version = "1.0.197", features = ["derive"] }
-tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread", "sync", "io-std", "io-util", "tracing"] }
+tokio = { version = "1.36.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "io-std",
+    "io-util",
+    "tracing",
+] }
 tonic = "0.11.0"
 tracing = "0.1.40"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["json", "local-time"] }
 rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
-rtmp = "0.6.3"
+rtmp = { path = "./third/rtmp" }
 streamhub = "0.2.2"
+thiserror = "1.0.58"
+url = "2.5.0"
 
 [build-dependencies]
 tonic-build = "0.11.0"
