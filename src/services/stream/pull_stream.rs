@@ -1,4 +1,4 @@
-use rtmp::relay::{pull_client::PullClient, push_client::PushClient};
+
 use streamhub::define::StreamHubEventSender;
 use streamhub::StreamsHub;
 use tracing::{debug, error, info};
@@ -60,7 +60,5 @@ async fn handle_rtmp_session(ctx: RtmpSessionContext) -> anyhow::Result<()> {
     let authenticator = auth::SimpleTokenAuthenticator::new("123456".to_string());
     let mut rtmp_session = rtmp::session::server_session::ServerSession::new(stream, sender, 2, Some(authenticator));
 
-    rtmp_session.run().await?;
-
-    Ok(())
+    rtmp_session.run().await.map_err(anyhow::Error::new)
 }

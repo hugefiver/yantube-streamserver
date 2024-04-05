@@ -17,11 +17,7 @@ impl SimpleTokenAuthenticator {
     }
 }
 
-fn extract_query(mut q: &str) -> HashMap<String, String> {
-    // if q.starts_with('?') {
-    //     q = &q[1..];
-    // }
-
+fn extract_query(q: &str) -> HashMap<String, String> {
     url::form_urlencoded::parse(q.as_bytes())
         .into_owned()
         .collect()

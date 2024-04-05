@@ -100,7 +100,7 @@ impl Common {
                                 duration: 0,
                             };
                             if let Err(err) = sender.send(statistic_audio_data) {
-                                log::error!("send statistic_data err: {}", err);
+                                log::error!("send audio statistic_data err: {}", err);
                             }
                         }
                     }
@@ -117,7 +117,7 @@ impl Common {
                                 duration: 0,
                             };
                             if let Err(err) = sender.send(statistic_video_data) {
-                                log::error!("send statistic_data err: {}", err);
+                                log::error!("send video statistic_data err: {}", err);
                             }
                         }
                     }

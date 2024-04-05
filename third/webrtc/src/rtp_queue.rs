@@ -94,12 +94,12 @@ impl RtpQueue {
     pub fn write_queue(&mut self, packet: RtpPacket) {
         let cur_seq_number = packet.header.sequence_number;
 
-        log::debug!(
-            "write queue: {}, cache size:{}, queue: {}",
-            cur_seq_number,
-            self.cache.len(),
-            self.get_seqs()
-        );
+        // log::debug!(
+        //     "write queue: {}, cache size:{}, queue: {}",
+        //     cur_seq_number,
+        //     self.cache.len(),
+        //     self.get_seqs()
+        // );
 
         if self.probation > 0 {
             if self.cache.is_empty() {
@@ -147,7 +147,7 @@ impl RtpQueue {
                 //too late
                 return;
             } else {
-                log::debug!("bad");
+                // log::debug!("bad");
                 if self.bad_cache.is_empty() || cur_seq_number == self.bad_seq {
                     self.bad_cache.push(packet);
                     self.bad_seq = cur_seq_number.wrapping_add(1);

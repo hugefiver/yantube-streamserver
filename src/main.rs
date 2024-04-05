@@ -33,10 +33,12 @@ async fn main() {
     let mut layers: Box<dyn Layer<Registry> + Send + Sync> = if app_config.debug {
         tracing_subscriber::fmt::layer()
             .pretty()
+            .with_timer(tracing_subscriber::fmt::time::ChronoLocal::rfc_3339())
             .with_writer(io::stdout.with_max_level(Level::DEBUG))
             .boxed()
     } else {
         tracing_subscriber::fmt::layer()
+            .with_timer(tracing_subscriber::fmt::time::ChronoLocal::rfc_3339())
             .with_writer(io::stdout.with_max_level(log_level))
             .boxed()
     };
@@ -76,6 +78,11 @@ async fn main() {
         layers = layers.and_then(layer).boxed();
     }
 
+    let layers = layers.with_filter(
+        tracing_subscriber::filter::EnvFilter::builder()
+            .with_default_directive(log_level.into())
+            .parse_lossy("xwebrtc=info"),
+    );
     Registry::default().with(layers).init();
 
     let span = span!(Level::TRACE, "bootstrap");

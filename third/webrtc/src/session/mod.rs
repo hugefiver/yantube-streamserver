@@ -36,7 +36,7 @@ use bytesio::bytes_writer::AsyncBytesWriter;
 use errors::SessionError;
 use errors::SessionErrorValue;
 use http::StatusCode;
-use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
+use webrtc::{media::audio::buffer::info, peer_connection::peer_connection_state::RTCPeerConnectionState};
 use webrtc::peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection};
 
 pub struct WebRTCServerSession {
@@ -114,7 +114,7 @@ impl WebRTCServerSession {
             let eles: Vec<&str> = http_request.uri.path.splitn(2, '/').collect();
             let pars_map = &http_request.query_pairs;
 
-            let exe_directory = if let Ok(mut exe_path) = std::env::current_exe() {
+            let mut exe_directory = if let Ok(mut exe_path) = std::env::current_exe() {
                 exe_path.pop();
                 exe_path.to_string_lossy().to_string()
             } else {
@@ -123,6 +123,12 @@ impl WebRTCServerSession {
 
             let request_method = http_request.method.as_str();
             if request_method == http_method_name::GET {
+                log::debug!("http get path: {}", http_request.uri.path);
+                log::debug!("exe_directory: {}", exe_directory);
+                
+                // remove exe_directory 'target/debug'
+                exe_directory = exe_directory.replace("target/debug", "third/webrtc/src/clients");
+
                 let response = match http_request.uri.path.as_str() {
                     "/" => Self::gen_file_response(
                         format!("{}/{}", exe_directory, "index.html").as_str(),
