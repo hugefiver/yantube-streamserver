@@ -1,6 +1,5 @@
 use thiserror::Error;
 use {
-    super::auth::AuthError,
     crate::{
         cache::errors::CacheError,
         chunk::errors::{PackError, UnpackError},
@@ -16,6 +15,8 @@ use {
     tokio::sync::oneshot::error::RecvError,
     xflv::amf0::errors::Amf0WriteError,
 };
+
+use auth::AuthError;
 
 #[derive(Debug, Error)]
 pub enum SessionError {

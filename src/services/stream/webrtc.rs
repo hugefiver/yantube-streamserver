@@ -1,5 +1,6 @@
 use xwebrtc::webrtc::WebRTCServer;
 use streamhub::StreamsHub;
+use auth::{self, SimpleTokenAuthenticator};
 
 pub async fn start_server(conf: &crate::config::AppConfig) -> anyhow::Result<()> {
     let listen_port = conf.stream.port;
@@ -9,10 +10,11 @@ pub async fn start_server(conf: &crate::config::AppConfig) -> anyhow::Result<()>
     let sender = stream_hub.get_hub_event_sender();
     tokio::spawn(async move { stream_hub.run().await });
 
+    let authenticator = SimpleTokenAuthenticator::new("123456".to_string());
     let mut webrtc_server = WebRTCServer::new(
         format!("{}:{}", listen_host, listen_port),
         sender,
-        None,
+        Some(authenticator),
     );
 
     webrtc_server.run().await.map_err(anyhow::Error::new)

@@ -1,6 +1,21 @@
 use std::collections::HashMap;
 
-use rtmp::session::auth;
+pub trait Auth: Send+Sync {
+    fn auth(&self, app: Option<&str>, stream: Option<&str>, query: Option<&str>) -> Result<(), AuthError>;
+
+    fn auth_pull(&self, app: Option<&str>, stream: Option<&str>, query: Option<&str>) -> Result<(), AuthError> {
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AuthError {
+    #[error("token is not correct.")]
+    TokenIsNotCorrect,
+    #[error("no token found.")]
+    NoTokenFound,
+}
+
 
 #[derive(Debug, Clone)]
 pub struct SimpleTokenAuthenticator {
@@ -23,24 +38,24 @@ fn extract_query(q: &str) -> HashMap<String, String> {
         .collect()
 }
 
-impl auth::Auth for SimpleTokenAuthenticator {
+impl Auth for SimpleTokenAuthenticator {
     fn auth(
         &self, app: Option<&str>, stream: Option<&str>, query: Option<&str>,
-    ) -> Result<(), auth::AuthError> {
-        let span = tracing::span!(tracing::Level::DEBUG, "rtmp_auth");
+    ) -> Result<(), AuthError> {
+        let span = tracing::span!(tracing::Level::DEBUG, "simple_auth");
         let _ = span.enter();
-        tracing::debug!(app, stream, query, "simple auth for rtmp session");
+        tracing::debug!(app, stream, query, "simple auth for session");
 
         if let Some(auth_token) = &self.token {
             match query {
-                Some("") | None=> Err(auth::AuthError::NoTokenFound),
+                Some("") | None=> Err(AuthError::NoTokenFound),
                 Some(query) => {
                     let query = extract_query(query);
-                    tracing::debug!(?query, "rtmp session query");
+                    tracing::debug!(?query, "session query");
                     match query.get("token") {
                         Some(token) if token == auth_token => Ok(()),
-                        None => Err(auth::AuthError::NoTokenFound),
-                        _ => Err(auth::AuthError::TokenIsNotCorrect),
+                        None => Err(AuthError::NoTokenFound),
+                        _ => Err(AuthError::TokenIsNotCorrect),
                     }
                 },
             }
@@ -49,3 +64,4 @@ impl auth::Auth for SimpleTokenAuthenticator {
         }
     }
 }
+

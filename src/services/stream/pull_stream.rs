@@ -2,7 +2,7 @@
 use streamhub::define::StreamHubEventSender;
 use streamhub::StreamsHub;
 use tracing::{debug, error, info};
-use super::auth;
+use auth::auth::SimpleTokenAuthenticator;
 
 #[derive(Debug)]
 struct RtmpSessionContext {
@@ -57,7 +57,7 @@ async fn handle_rtmp_session(ctx: RtmpSessionContext) -> anyhow::Result<()> {
     let stream = ctx.stream;
     let sender = ctx.sender;
 
-    let authenticator = auth::SimpleTokenAuthenticator::new("123456".to_string());
+    let authenticator = SimpleTokenAuthenticator::new("123456".to_string());
     let mut rtmp_session = rtmp::session::server_session::ServerSession::new(stream, sender, 2, Some(authenticator));
 
     rtmp_session.run().await.map_err(anyhow::Error::new)

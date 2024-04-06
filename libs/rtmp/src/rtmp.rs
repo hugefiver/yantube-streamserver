@@ -1,7 +1,7 @@
 use streamhub::define::StreamHubEventSender;
 
 use super::session::server_session;
-use super::session::auth;
+use auth;
 use std::net::SocketAddr;
 use tokio::io::Error;
 use tokio::net::TcpListener;

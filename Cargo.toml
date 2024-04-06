@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["third/rtmp", "third/webrtc", "."]
+members = ["libs/rtmp", "libs/webrtc", "."]
 
 [workspace.dependencies]
 bytesio = "0.3.2"
@@ -12,6 +12,7 @@ streamhub = "0.2.2"
 h264-decoder = "0.2.2"
 xflv = "0.4.2"
 commonlib = "0.1.1"
+auth = { path = "./libs/auth" }
 
 [dependencies]
 anyhow = { version = "1.0.81", features = ["backtrace"] }
@@ -32,8 +33,9 @@ tracing = "0.1.40"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["json", "local-time", "env-filter", "chrono"] }
 rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
-rtmp = { path = "./third/rtmp" }
-xwebrtc = { path = "./third/webrtc" }
+rtmp = { path = "./libs/rtmp" }
+xwebrtc = { path = "./libs/webrtc" }
+auth = { path = "./libs/auth" }
 streamhub = "0.2.2"
 thiserror = "1.0.58"
 url = "2.5.0"

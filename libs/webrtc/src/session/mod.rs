@@ -1,4 +1,5 @@
 pub mod errors;
+
 use streamhub::{
     define::{
         DataSender, InformationSender, NotifyInfo, PublishType, PublisherInfo, StreamHubEvent,
@@ -24,7 +25,7 @@ use commonlib::http::{parse_content_length, HttpRequest, HttpResponse};
 use commonlib::http::Marshal as HttpMarshal;
 use commonlib::http::Unmarshal as HttpUnmarshal;
 
-use commonlib::auth::Auth;
+use auth::Auth;
 
 use super::whep::handle_whep;
 use super::whip::handle_whip;
@@ -36,10 +37,12 @@ use bytesio::bytes_writer::AsyncBytesWriter;
 use errors::SessionError;
 use errors::SessionErrorValue;
 use http::StatusCode;
-use webrtc::{media::audio::buffer::info, peer_connection::peer_connection_state::RTCPeerConnectionState};
 use webrtc::peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection};
+use webrtc::{
+    media::audio::buffer::info, peer_connection::peer_connection_state::RTCPeerConnectionState,
+};
 
-pub struct WebRTCServerSession {
+pub struct WebRTCServerSession<A: Auth> {
     io: Arc<Mutex<Box<dyn TNetIO + Send + Sync>>>,
     reader: BytesReader,
     writer: AsyncBytesWriter,
@@ -51,15 +54,11 @@ pub struct WebRTCServerSession {
     pub http_request_data: Option<HttpRequest>,
     pub peer_connection: Option<Arc<RTCPeerConnection>>,
 
-    auth: Option<Auth>,
+    auth: Option<A>,
 }
 
-impl WebRTCServerSession {
-    pub fn new(
-        stream: TcpStream,
-        event_producer: StreamHubEventSender,
-        auth: Option<Auth>,
-    ) -> Self {
+impl<A: Auth> WebRTCServerSession<A> {
+    pub fn new(stream: TcpStream, event_producer: StreamHubEventSender, auth: Option<A>) -> Self {
         let net_io: Box<dyn TNetIO + Send + Sync> = Box::new(TcpIO::new(stream));
         let io = Arc::new(Mutex::new(net_io));
 
@@ -84,8 +83,7 @@ impl WebRTCServerSession {
     }
 
     pub async fn run(
-        &mut self,
-        uuid_2_sessions: Arc<Mutex<HashMap<Uuid, Arc<Mutex<WebRTCServerSession>>>>>,
+        &mut self, uuid_2_sessions: Arc<Mutex<HashMap<Uuid, Arc<Mutex<WebRTCServerSession<A>>>>>>,
     ) -> Result<(), SessionError> {
         while self.reader.len() < 4 {
             let data = self.io.lock().await.read().await?;
@@ -125,7 +123,7 @@ impl WebRTCServerSession {
             if request_method == http_method_name::GET {
                 log::debug!("http get path: {}", http_request.uri.path);
                 log::debug!("exe_directory: {}", exe_directory);
-                
+
                 // remove exe_directory 'target/debug'
                 exe_directory = exe_directory.replace("target/debug", "third/webrtc/src/clients");
 
@@ -169,7 +167,7 @@ impl WebRTCServerSession {
             let app_name = pars_map.get("app").unwrap().clone();
             let stream_name = pars_map.get("stream").unwrap().clone();
 
-            log::info!("1:{},2:{},3:{}", t, app_name, stream_name);
+            log::info!("1:{},app:{},stream:{}", t, app_name, stream_name);
 
             match request_method {
                 http_method_name::POST => {
@@ -193,17 +191,36 @@ impl WebRTCServerSession {
                     match t.to_lowercase().as_str() {
                         "whip" => {
                             if let Some(auth) = &self.auth {
-                                auth.authenticate(&stream_name, &http_request.uri.query, false)?;
+                                auth.auth(
+                                    Some(&app_name),
+                                    Some(&stream_name),
+                                    Some(&http_request.uri.query.as_ref().unwrap()),
+                                ).or_else(|err| {
+                                    log::error!("whipauth error: {}", err);
+                                    Err(SessionError {
+                                        value: errors::SessionErrorValue::AuthError(err),
+                                    })
+                                })?;
                             }
                             self.publish_whip(app_name, stream_name, path, offer)
                                 .await?;
                         }
                         "whep" => {
                             if let Some(auth) = &self.auth {
-                                auth.authenticate(&stream_name, &http_request.uri.query, true)?;
+                                auth.auth_pull(
+                                    Some(&app_name),
+                                    Some(&stream_name),
+                                    http_request.uri.query.as_deref(),
+                                ).or_else(|err| {
+                                    log::error!("whepauth error: {}", err);
+                                    Err(SessionError {
+                                        value: errors::SessionErrorValue::AuthError(err),
+                                    })
+                                })?;
                             }
                             self.subscribe_whep(app_name, stream_name, path, offer)
                                 .await?;
+                            
                         }
                         _ => {
                             log::error!(
@@ -288,10 +305,7 @@ impl WebRTCServerSession {
     }
 
     async fn publish_whip(
-        &mut self,
-        app_name: String,
-        stream_name: String,
-        path: String,
+        &mut self, app_name: String, stream_name: String, path: String,
         offer: RTCSessionDescription,
     ) -> Result<(), SessionError> {
         let (event_result_sender, event_result_receiver) = oneshot::channel();
@@ -340,9 +354,7 @@ impl WebRTCServerSession {
     }
 
     fn unpublish_whip(
-        app_name: String,
-        stream_name: String,
-        publish_info: PublisherInfo,
+        app_name: String, stream_name: String, publish_info: PublisherInfo,
         sender: StreamHubEventSender,
     ) -> Result<(), SessionError> {
         let unpublish_event = StreamHubEvent::UnPublish {
@@ -363,10 +375,7 @@ impl WebRTCServerSession {
     }
 
     async fn subscribe_whep(
-        &mut self,
-        app_name: String,
-        stream_name: String,
-        path: String,
+        &mut self, app_name: String, stream_name: String, path: String,
         offer: RTCSessionDescription,
     ) -> Result<(), SessionError> {
         let subscriber_info = self.get_subscriber_info();
@@ -438,6 +447,9 @@ impl WebRTCServerSession {
                 response
                     .headers
                     .insert("Content-Type".to_string(), "application/sdp".to_string());
+                response
+                    .headers
+                    .insert("Access-Control-Allow-Origin".to_string(), "*".to_string());
                 response.headers.insert("Location".to_string(), path);
                 response.body = Some(session_description.sdp);
                 log::info!("before whep 1");
@@ -453,9 +465,7 @@ impl WebRTCServerSession {
     }
 
     fn unsubscribe_whep(
-        app_name: String,
-        stream_name: String,
-        subscriber_info: SubscriberInfo,
+        app_name: String, stream_name: String, subscriber_info: SubscriberInfo,
         sender: StreamHubEventSender,
     ) -> Result<(), SessionError> {
         let unsubscribe_event = StreamHubEvent::UnSubscribe {
@@ -580,9 +590,7 @@ impl WebRTCStreamHandler {
 #[async_trait]
 impl TStreamHandler for WebRTCStreamHandler {
     async fn send_prior_data(
-        &self,
-        _data_sender: DataSender,
-        _sub_type: SubscribeType,
+        &self, _data_sender: DataSender, _sub_type: SubscribeType,
     ) -> Result<(), StreamHubError> {
         Ok(())
     }

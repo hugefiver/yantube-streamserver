@@ -43,7 +43,7 @@ enum ServerSessionState {
     Play,
 }
 
-pub struct ServerSession<A: super::auth::Auth> {
+pub struct ServerSession<A: auth::Auth> {
     pub app_name: String,
     pub stream_name: String,
     pub query: Option<String>,
@@ -60,7 +60,7 @@ pub struct ServerSession<A: super::auth::Auth> {
     auth: Option<A>,
 }
 
-impl<A: super::auth::Auth> ServerSession<A> {
+impl<A: auth::Auth> ServerSession<A> {
     pub fn new(
         stream: TcpStream,
         event_producer: StreamHubEventSender,
@@ -617,7 +617,7 @@ impl<A: super::auth::Auth> ServerSession<A> {
         (self.stream_name, self.query) =
             RtmpUrlParser::parse_stream_name_with_query(&raw_stream_name);
         if let Some(auth) = &self.auth {
-            auth.auth_pull(Some(&self.app_name), Some(&self.stream_name), self.query.as_deref())?;
+            auth.auth_pull(Some(&self.app_name), Some(&self.stream_name), self.query.as_deref());
         }
 
         let query = if let Some(query_val) = &self.query {

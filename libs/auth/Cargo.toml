@@ -1,0 +1,12 @@
+[package]
+name = "auth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+thiserror = "1.0.58"
+url = "2.5.0"
+tracing = "0.1.40"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["json", "local-time", "env-filter", "chrono"] }
+tracing-log = "0.2.0"

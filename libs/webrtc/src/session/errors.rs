@@ -2,50 +2,50 @@ use streamhub::errors::StreamHubError;
 use {
     bytesio::bytes_errors::BytesReadError,
     bytesio::{bytes_errors::BytesWriteError, bytesio_errors::BytesIOError},
-    commonlib::errors::AuthError,
-    failure::{Backtrace, Fail},
+    auth::AuthError,
     std::fmt,
     std::str::Utf8Error,
     tokio::sync::oneshot::error::RecvError,
     webrtc::error::Error as RTCError,
 };
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub struct SessionError {
     pub value: SessionErrorValue,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum SessionErrorValue {
-    #[fail(display = "net io error: {}", _0)]
-    BytesIOError(#[cause] BytesIOError),
-    #[fail(display = "bytes read error: {}", _0)]
-    BytesReadError(#[cause] BytesReadError),
-    #[fail(display = "bytes write error: {}", _0)]
-    BytesWriteError(#[cause] BytesWriteError),
-    #[fail(display = "Utf8Error: {}", _0)]
-    Utf8Error(#[cause] Utf8Error),
-    #[fail(display = "event execute error: {}", _0)]
-    ChannelError(#[cause] StreamHubError),
-    #[fail(display = "webrtc error: {}", _0)]
-    RTCError(#[cause] RTCError),
-    #[fail(display = "tokio: oneshot receiver err: {}", _0)]
-    RecvError(#[cause] RecvError),
-    #[fail(display = "Auth err: {}", _0)]
-    AuthError(#[cause] AuthError),
-    #[fail(display = "stream hub event send error")]
+    #[error("net io error: {0}")]
+    BytesIOError(BytesIOError),
+    #[error("bytes read error: {0}")]
+    BytesReadError(BytesReadError),
+    #[error("bytes write error: {0}")]
+    BytesWriteError(BytesWriteError),
+    #[error("Utf8Error: {0}")]
+    Utf8Error(Utf8Error),
+    #[error("event execute error: {0}")]
+    ChannelError(StreamHubError),
+    #[error("webrtc error: {0}")]
+    RTCError(RTCError),
+    #[error("tokio: oneshot receiver err: {0}")]
+    RecvError(RecvError),
+    #[error("Auth err: {0}")]
+    AuthError(AuthError),
+    #[error("stream hub event send error")]
     StreamHubEventSendErr,
-    #[fail(display = "cannot receive frame data from stream hub")]
+    #[error("cannot receive frame data from stream hub")]
     CannotReceiveFrameData,
-    #[fail(display = "Http Request path error")]
+    #[error("Http Request path error")]
     HttpRequestPathError,
-    #[fail(display = "Not supported")]
+    #[error("Not supported")]
     HttpRequestNotSupported,
-    #[fail(display = "Empty sdp data")]
+    #[error("Empty sdp data")]
     HttpRequestEmptySdp,
-    #[fail(display = "Cannot find Content-Length")]
+    #[error("Cannot find Content-Length")]
     HttpRequestNoContentLength,
-    #[fail(display = "Channel receive error")]
+    #[error("Channel receive error")]
     ChannelRecvError,
 }
 
@@ -116,15 +116,5 @@ impl From<AuthError> for SessionError {
 impl fmt::Display for SessionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.value, f)
-    }
-}
-
-impl Fail for SessionError {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.value.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.value.backtrace()
     }
 }

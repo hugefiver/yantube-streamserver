@@ -21,8 +21,10 @@ webrtc = "0.8.0"
 async-trait = "0.1.70"
 fdk-aac = "0.6.0"
 audiopus = "0.3.0-rc.0"
+thiserror = "1.0.58"
 
 bytesio = { workspace = true }
 streamhub = { workspace = true }
 xflv = { workspace = true }
 commonlib = { workspace = true }
+auth = { workspace = true }
