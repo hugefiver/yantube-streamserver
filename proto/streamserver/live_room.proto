@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package live_room;
+package streamserver;
 
 service LiveRoomService {
   rpc CreateLiveRoom(CreateLiveRoomRequest) returns (LiveRoomResponse);

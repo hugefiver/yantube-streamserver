@@ -81,7 +81,7 @@ async fn main() {
     let layers = layers.with_filter(
         tracing_subscriber::filter::EnvFilter::builder()
             .with_default_directive(log_level.into())
-            .parse_lossy("xwebrtc=info"),
+            .parse_lossy("trace,xwebrtc=info"),
     );
     Registry::default().with(layers).init();
 
@@ -93,5 +93,22 @@ async fn main() {
     debug!("debug");
     warn!("warn");
 
-    app::start_app(app_config).await;
+    // register api server
+    let self_host = app_config.server.host.clone();
+    streamserver::services::state::streamserver::register_to_apiserver(&self_host)
+            .await
+            .expect("can't connect to apiserver");
+
+    tokio::spawn(async move {
+        app::start_app(&app_config).await;
+    });
+
+    // graceful shutdown
+    tokio::signal::ctrl_c().await.expect("failed to install signal handler");
+    info!("shutting down");
+
+    streamserver::services::state::streamserver::unregister_to_apiserver(&self_host)
+        .await
+        .expect("can't connect to apiserver");
+
 }

@@ -195,7 +195,8 @@ impl<A: Auth> WebRTCServerSession<A> {
                                     Some(&app_name),
                                     Some(&stream_name),
                                     Some(&http_request.uri.query.as_ref().unwrap()),
-                                ).or_else(|err| {
+                                )
+                                .or_else(|err| {
                                     log::error!("whipauth error: {}", err);
                                     Err(SessionError {
                                         value: errors::SessionErrorValue::AuthError(err),
@@ -211,7 +212,8 @@ impl<A: Auth> WebRTCServerSession<A> {
                                     Some(&app_name),
                                     Some(&stream_name),
                                     http_request.uri.query.as_deref(),
-                                ).or_else(|err| {
+                                )
+                                .or_else(|err| {
                                     log::error!("whepauth error: {}", err);
                                     Err(SessionError {
                                         value: errors::SessionErrorValue::AuthError(err),
@@ -220,7 +222,6 @@ impl<A: Auth> WebRTCServerSession<A> {
                             }
                             self.subscribe_whep(app_name, stream_name, path, offer)
                                 .await?;
-                            
                         }
                         _ => {
                             log::error!(
@@ -444,12 +445,24 @@ impl<A: Auth> WebRTCServerSession<A> {
 
                 let status_code = http::StatusCode::CREATED;
                 let mut response = Self::gen_response(status_code);
-                response
+                response.headers = response
                     .headers
-                    .insert("Content-Type".to_string(), "application/sdp".to_string());
-                response
-                    .headers
-                    .insert("Access-Control-Allow-Origin".to_string(), "*".to_string());
+                    .into_iter()
+                    .chain(
+                        vec![
+                            ("Content-Type".to_string(), "application/sdp".to_string()),
+                            ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
+                            ("Access-Control-Expose-Headers".to_string(), "Location".to_string()),
+                        ]
+                        .into_iter(),
+                    )
+                    .collect();
+                // response
+                //     .headers
+                //     .insert("Content-Type".to_string(), "application/sdp".to_string());
+                // response
+                //     .headers
+                //     .insert("Access-Control-Allow-Origin".to_string(), "*".to_string());
                 response.headers.insert("Location".to_string(), path);
                 response.body = Some(session_description.sdp);
                 log::info!("before whep 1");

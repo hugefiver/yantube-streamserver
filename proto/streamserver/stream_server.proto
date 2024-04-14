@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package streamserver;
+
+option go_package = "server/rpc/model";
+
+service StreamServer {
+  rpc Register (StreamServerRegisterRequest) returns (StreamServerRegisterResponse);
+  rpc Unregister (StreamServerRegisterRequest) returns (StreamServerRegisterResponse);
+  rpc KeepAlive (StreamServerKeepAliveRequest) returns (StreamServerKeepAliveResponse);
+}
+
+message StreamServerRegisterRequest {
+  string host = 1;
+}
+
+message StreamServerRegisterResponse {
+  bool success = 1;
+}
+
+message StreamServerKeepAliveRequest {
+  string host = 1;
+}
+  
+message StreamServerKeepAliveResponse {
+  bool success = 1;
+}

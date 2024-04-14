@@ -26,8 +26,7 @@ pub type Result<T> = std::result::Result<T, WebRTCError>;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 
 pub async fn handle_whep(
-    offer: RTCSessionDescription,
-    mut receiver: PacketDataReceiver,
+    offer: RTCSessionDescription, mut receiver: PacketDataReceiver,
     state_sender: broadcast::Sender<RTCPeerConnectionState>,
 ) -> Result<(RTCSessionDescription, Arc<RTCPeerConnection>)> {
     // Everything below is the WebRTC-rs API! Thanks for using it ❤️.
@@ -55,7 +54,11 @@ pub async fn handle_whep(
     // Prepare the configuration
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
+            urls: vec![
+                "stun:stun.l.google.com:19302".to_string(),
+                // "stun:stun.qq.com:3478".to_string(),
+                "stun:stun.syncthing.net:3478".to_string(),
+            ],
             ..Default::default()
         }],
         ..Default::default()

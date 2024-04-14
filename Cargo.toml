@@ -32,7 +32,7 @@ tonic = "0.11.0"
 tracing = "0.1.40"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.18", features = ["json", "local-time", "env-filter", "chrono"] }
-rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
+# rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
 rtmp = { path = "./libs/rtmp" }
 xwebrtc = { path = "./libs/webrtc" }
 auth = { path = "./libs/auth" }
@@ -40,11 +40,32 @@ streamhub = "0.2.2"
 thiserror = "1.0.58"
 url = "2.5.0"
 tracing-log = "0.2.0"
+prost = "0.12.4"
 
 [build-dependencies]
 tonic-build = "0.11.0"
 
-[package.metadata.vcpkg]
-dependencies = ["ffmpeg[avformat,avcodec,vpx,x264,x265]"]
-git = "https://github.com/microsoft/vcpkg"
-rev = "master"
+# [package.metadata.vcpkg]
+# dependencies = ["ffmpeg[avformat,avcodec,vpx,x264,x265]"]
+# git = "https:/
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = 'unwind'
+incremental = false
+codegen-units = 256
+
+[profile.test]
+opt-level = 3
+debug = true
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
+incremental = false
+codegen-units = 256
+# rev = "master"
