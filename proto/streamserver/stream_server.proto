@@ -12,16 +12,20 @@ service StreamServer {
 
 message StreamServerRegisterRequest {
   string host = 1;
+  string secret = 2;
 }
 
 message StreamServerRegisterResponse {
   bool success = 1;
+  string message = 2;
 }
 
 message StreamServerKeepAliveRequest {
   string host = 1;
+  string secret = 2;
 }
   
 message StreamServerKeepAliveResponse {
   bool success = 1;
+  string message = 2;
 }

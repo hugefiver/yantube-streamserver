@@ -411,24 +411,32 @@ pub mod live_room_service_server {
 pub struct StreamServerRegisterRequest {
     #[prost(string, tag = "1")]
     pub host: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub secret: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamServerRegisterResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamServerKeepAliveRequest {
     #[prost(string, tag = "1")]
     pub host: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub secret: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamServerKeepAliveResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
+    #[prost(string, tag = "2")]
+    pub message: ::prost::alloc::string::String,
 }
 /// Generated client implementations.
 pub mod stream_server_client {

@@ -94,8 +94,8 @@ async fn main() {
     warn!("warn");
 
     // register api server
-    let self_host = app_config.server.host.clone();
-    streamserver::services::state::streamserver::register_to_apiserver(&self_host)
+    let api_cfg = app_config.server.clone();
+    streamserver::services::state::streamserver::register_to_apiserver(&api_cfg)
             .await
             .expect("can't connect to apiserver");
 
@@ -107,7 +107,7 @@ async fn main() {
     tokio::signal::ctrl_c().await.expect("failed to install signal handler");
     info!("shutting down");
 
-    streamserver::services::state::streamserver::unregister_to_apiserver(&self_host)
+    streamserver::services::state::streamserver::unregister_to_apiserver(&api_cfg)
         .await
         .expect("can't connect to apiserver");
 
