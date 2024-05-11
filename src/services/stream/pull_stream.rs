@@ -1,7 +1,7 @@
 
 use streamhub::define::StreamHubEventSender;
 use streamhub::StreamsHub;
-use tracing::{debug, error, info};
+use tracing::{error, info};
 use auth::auth::SimpleTokenAuthenticator;
 
 #[derive(Debug)]

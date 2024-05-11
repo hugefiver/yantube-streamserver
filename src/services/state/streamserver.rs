@@ -1,6 +1,6 @@
 use crate::{config::server::ServerConf, pb::streamserver::stream_server_client::StreamServerClient};
 use crate::pb::streamserver::StreamServerRegisterRequest;
-use tracing::{debug, info, span, trace, warn, Level};
+use tracing::{info};
 
 pub async fn register_to_apiserver(cfg: &ServerConf) -> anyhow::Result<()> {
     info!("register to apiserver");

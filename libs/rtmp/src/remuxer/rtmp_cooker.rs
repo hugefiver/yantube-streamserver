@@ -1,6 +1,6 @@
 use bytes::BytesMut;
 use bytesio::bytes_writer::BytesWriter;
-use indexmap::IndexMap;
+use indexmap::map::IndexMap;
 
 use xflv::{
     flv_tag_header::{AudioTagHeader, VideoTagHeader},

@@ -53,14 +53,27 @@ pub async fn handle_whep(
 
     // Prepare the configuration
     let config = RTCConfiguration {
-        ice_servers: vec![RTCIceServer {
-            urls: vec![
-                "stun:stun.l.google.com:19302".to_string(),
-                // "stun:stun.qq.com:3478".to_string(),
-                "stun:stun.syncthing.net:3478".to_string(),
-            ],
-            ..Default::default()
-        }],
+        ice_servers: vec![
+            RTCIceServer {
+                urls: vec![
+                    "stun:10.15.0.65:3478".to_string(),
+                    "turn:10.15.0.65:3478?transport=udp".to_string(),
+                    "turn:10.15.0.65:3478?transport=tcp".to_string(),
+                ],
+                username: "public".to_string(),
+                credential: "123456".to_string(),
+                credential_type:
+                    webrtc::ice_transport::ice_credential_type::RTCIceCredentialType::Password,
+            },
+            RTCIceServer {
+                urls: vec![
+                    "stun:stun.l.google.com:19302".to_string(),
+                    // "stun:stun.qq.com:3478".to_string(),
+                    "stun:stun.syncthing.net:3478".to_string(),
+                ],
+                ..Default::default()
+            },
+        ],
         ..Default::default()
     };
 

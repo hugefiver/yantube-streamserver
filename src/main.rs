@@ -49,7 +49,7 @@ async fn main() {
         let directory = path.parent().expect("failed to parse log file");
         let base_filename = path.file_name().expect("failed to parse log file");
 
-        if !Path::exists(&directory) {
+        if !Path::exists(directory) {
             fs::create_dir_all(directory).expect("failed to create log directory");
         }
 

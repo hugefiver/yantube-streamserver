@@ -452,6 +452,8 @@ impl<A: Auth> WebRTCServerSession<A> {
                         vec![
                             ("Content-Type".to_string(), "application/sdp".to_string()),
                             ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
+                            ("Access-Control-Allow-Headers".to_string(), "GET, POST, OPTIONS".to_string()),
+                            ("Access-Control-Allow-Methods".to_string(), "*".to_string()),
                             ("Access-Control-Expose-Headers".to_string(), "Location".to_string()),
                         ]
                         .into_iter(),
