@@ -89,11 +89,6 @@ async fn main() {
     let span = span!(Level::TRACE, "bootstrap");
     let _enter = span.enter();
 
-    trace!("trace");
-    info!("info");
-    debug!("debug");
-    warn!("warn");
-
     // register api server
     let api_cfg = app_config.server.clone();
     streamserver::services::state::streamserver::register_to_apiserver(&api_cfg)
