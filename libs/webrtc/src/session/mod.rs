@@ -111,7 +111,9 @@ impl<A: Auth> WebRTCServerSession<A> {
             //POST /whip?app=live&stream=test HTTP/1.1
             let eles: Vec<&str> = http_request.uri.path.splitn(2, '/').collect();
             let pars_map = &http_request.query_pairs;
+            let request_method = http_request.method.as_str();
 
+            /*
             let mut exe_directory = if let Ok(mut exe_path) = std::env::current_exe() {
                 exe_path.pop();
                 exe_path.to_string_lossy().to_string()
@@ -119,7 +121,6 @@ impl<A: Auth> WebRTCServerSession<A> {
                 "/app".to_string()
             };
 
-            let request_method = http_request.method.as_str();
             if request_method == http_method_name::GET {
                 log::debug!("http get path: {}", http_request.uri.path);
                 log::debug!("exe_directory: {}", exe_directory);
@@ -150,8 +151,13 @@ impl<A: Auth> WebRTCServerSession<A> {
 
                 self.send_response(&response).await?;
                 return Ok(());
-            }
+            }*/
 
+            if request_method == http_method_name::GET {
+                self.send_response(&Self::gen_response(http::StatusCode::NOT_FOUND))
+                    .await?;
+                return Ok(());
+            }
             if eles.len() < 2 || pars_map.get("app").is_none() || pars_map.get("stream").is_none() {
                 log::error!(
                     "WebRTCServerSession::run the http path is not correct: {}",
@@ -225,8 +231,9 @@ impl<A: Auth> WebRTCServerSession<A> {
                         }
                         _ => {
                             log::error!(
-                                "current path: {}, method: {}",
+                                "current path: {}, query: {:?}, method: {}",
                                 http_request.uri.path,
+                                http_request.uri.query,
                                 t.to_lowercase()
                             );
                             return Err(SessionError {
@@ -239,7 +246,40 @@ impl<A: Auth> WebRTCServerSession<A> {
                     self.send_response(&Self::gen_response(http::StatusCode::OK))
                         .await?
                 }
-                http_method_name::PATCH => {}
+                http_method_name::PATCH => {
+                    match t.to_lowercase().as_str() {
+                        "whep" => {
+                            let session_id = pars_map.get("session_id");
+                            if let Some(auth) = &self.auth {
+                                auth.auth_pull(
+                                    Some(&app_name),
+                                    Some(&stream_name),
+                                    http_request.uri.query.as_deref(),
+                                )
+                                .or_else(|err| {
+                                    log::error!("whepauth error: {}", err);
+                                    Err(SessionError {
+                                        value: errors::SessionErrorValue::AuthError(err),
+                                    })
+                                })?;
+                            }
+                            // TODO: implement <https://www.ietf.org/archive/id/draft-ietf-wish-whep-01.html#name-ice-restarts>
+                            self.send_response(&Self::gen_response(http::StatusCode::NOT_FOUND)).await?;
+                        }
+                        _ => {
+                            log::error!(
+                                "current path: {}, query: {:?}, method: {}",
+                                http_request.uri.path,
+                                http_request.uri.query,
+                                t.to_lowercase()
+                            );
+
+                            return Err(SessionError {
+                                value: errors::SessionErrorValue::HttpRequestNotSupported,
+                            });
+                        }
+                    }
+                }
                 http_method_name::DELETE => {
                     if let Some(session_id) = pars_map.get("session_id") {
                         if let Some(uuid) = Uuid::from_str2(session_id) {
@@ -451,10 +491,16 @@ impl<A: Auth> WebRTCServerSession<A> {
                     .chain(
                         vec![
                             ("Content-Type".to_string(), "application/sdp".to_string()),
-                            ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
-                            ("Access-Control-Allow-Headers".to_string(), "GET, POST, OPTIONS".to_string()),
-                            ("Access-Control-Allow-Methods".to_string(), "*".to_string()),
-                            ("Access-Control-Expose-Headers".to_string(), "Location".to_string()),
+                            // ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
+                            // (
+                            //     "Access-Control-Allow-Methods".to_string(),
+                            //     "GET, POST, OPTIONS, PATCH".to_string(),
+                            // ),
+                            // ("Access-Control-Allow-Headers".to_string(), "*".to_string()),
+                            (
+                                "Access-Control-Expose-Headers".to_string(),
+                                "Location".to_string(),
+                            ),
                         ]
                         .into_iter(),
                     )
@@ -467,7 +513,7 @@ impl<A: Auth> WebRTCServerSession<A> {
                 //     .insert("Access-Control-Allow-Origin".to_string(), "*".to_string());
                 response.headers.insert("Location".to_string(), path);
                 response.body = Some(session_description.sdp);
-                log::info!("before whep 1");
+                // log::info!("before whep 1");
                 response
             }
             Err(err) => {
@@ -549,16 +595,18 @@ impl<A: Auth> WebRTCServerSession<A> {
             ..Default::default()
         };
 
-        response
+        response.headers = response
             .headers
-            .insert("Access-Control-Allow-Origin".to_owned(), "*".to_owned());
-        response.headers.insert(
-            "Access-Control-Allow-Headers".to_owned(),
-            "content-type".to_owned(),
-        );
-        response
-            .headers
-            .insert("Access-Control-Allow-Method".to_owned(), "POST".to_owned());
+            .into_iter()
+            .chain(vec![
+                ("Access-Control-Allow-Origin".to_string(), "*".to_string()),
+                (
+                    "Access-Control-Allow-Methods".to_string(),
+                    "GET, POST, PATCH, OPTIONS".to_string(),
+                ),
+                ("Access-Control-Allow-Headers".to_string(), "*".to_string()),
+            ])
+            .collect();
         response
     }
 

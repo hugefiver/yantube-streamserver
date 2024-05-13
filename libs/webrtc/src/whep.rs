@@ -9,6 +9,7 @@ use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS};
 use webrtc::api::APIBuilder;
 use webrtc::ice_transport::ice_connection_state::RTCIceConnectionState;
+use webrtc::ice_transport::ice_credential_type::RTCIceCredentialType;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -24,6 +25,30 @@ use webrtc::track::track_local::TrackLocalWriter;
 
 pub type Result<T> = std::result::Result<T, WebRTCError>;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
+
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref ICE_SERVERS: Vec<RTCIceServer> = vec![
+    RTCIceServer {
+        urls: vec![
+            "stun:10.15.0.65:3478".to_string(),
+            "turn:10.15.0.65:3478?transport=udp".to_string(),
+            "turn:10.15.0.65:3478?transport=tcp".to_string(),
+        ],
+        username: "public".to_string(),
+        credential: "123456".to_string(),
+        credential_type: RTCIceCredentialType::Password,
+    },
+    RTCIceServer {
+        urls: vec![
+            "stun:stun.l.google.com:19302".to_string(),
+            // "stun:stun.qq.com:3478".to_string(),
+            "stun:stun.syncthing.net:3478".to_string(),
+        ],
+        ..Default::default()
+    },
+];}
 
 pub async fn handle_whep(
     offer: RTCSessionDescription, mut receiver: PacketDataReceiver,
@@ -53,27 +78,7 @@ pub async fn handle_whep(
 
     // Prepare the configuration
     let config = RTCConfiguration {
-        ice_servers: vec![
-            RTCIceServer {
-                urls: vec![
-                    "stun:10.15.0.65:3478".to_string(),
-                    "turn:10.15.0.65:3478?transport=udp".to_string(),
-                    "turn:10.15.0.65:3478?transport=tcp".to_string(),
-                ],
-                username: "public".to_string(),
-                credential: "123456".to_string(),
-                credential_type:
-                    webrtc::ice_transport::ice_credential_type::RTCIceCredentialType::Password,
-            },
-            RTCIceServer {
-                urls: vec![
-                    "stun:stun.l.google.com:19302".to_string(),
-                    // "stun:stun.qq.com:3478".to_string(),
-                    "stun:stun.syncthing.net:3478".to_string(),
-                ],
-                ..Default::default()
-            },
-        ],
+        ice_servers: ICE_SERVERS.clone(),
         ..Default::default()
     };
 

@@ -78,10 +78,11 @@ async fn main() {
         layers = layers.and_then(layer).boxed();
     }
 
+    let log_config = std::env::var("STREAM_LOG_EXTRA").unwrap_or("xwebrtc=info".to_string());
     let layers = layers.with_filter(
         tracing_subscriber::filter::EnvFilter::builder()
             .with_default_directive(log_level.into())
-            .parse_lossy("trace,xwebrtc=info"),
+            .parse_lossy("tracing,".to_string() + &log_config),
     );
     Registry::default().with(layers).init();
 
