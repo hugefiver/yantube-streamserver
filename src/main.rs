@@ -2,7 +2,7 @@ use std::{fmt::Debug, fs, io, path::Path};
 
 use clap::Parser;
 use streamserver::app;
-use tracing::{debug, info, span, trace, warn, Level};
+use tracing::{info, span, Level};
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::{
     fmt::writer::MakeWriterExt, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,

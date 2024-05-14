@@ -38,9 +38,7 @@ use errors::SessionError;
 use errors::SessionErrorValue;
 use http::StatusCode;
 use webrtc::peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection};
-use webrtc::{
-    media::audio::buffer::info, peer_connection::peer_connection_state::RTCPeerConnectionState,
-};
+use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 
 pub struct WebRTCServerSession<A: Auth> {
     io: Arc<Mutex<Box<dyn TNetIO + Send + Sync>>>,
@@ -200,13 +198,13 @@ impl<A: Auth> WebRTCServerSession<A> {
                                 auth.auth(
                                     Some(&app_name),
                                     Some(&stream_name),
-                                    Some(&http_request.uri.query.as_ref().unwrap()),
+                                    Some(http_request.uri.query.as_ref().unwrap()),
                                 )
-                                .or_else(|err| {
+                                .map_err(|err| {
                                     log::error!("whipauth error: {}", err);
-                                    Err(SessionError {
+                                    SessionError {
                                         value: errors::SessionErrorValue::AuthError(err),
-                                    })
+                                    }
                                 })?;
                             }
                             self.publish_whip(app_name, stream_name, path, offer)
@@ -219,11 +217,11 @@ impl<A: Auth> WebRTCServerSession<A> {
                                     Some(&stream_name),
                                     http_request.uri.query.as_deref(),
                                 )
-                                .or_else(|err| {
+                                .map_err(|err| {
                                     log::error!("whepauth error: {}", err);
-                                    Err(SessionError {
+                                    SessionError {
                                         value: errors::SessionErrorValue::AuthError(err),
-                                    })
+                                    }
                                 })?;
                             }
                             self.subscribe_whep(app_name, stream_name, path, offer)
@@ -256,11 +254,11 @@ impl<A: Auth> WebRTCServerSession<A> {
                                     Some(&stream_name),
                                     http_request.uri.query.as_deref(),
                                 )
-                                .or_else(|err| {
+                                .map_err(|err| {
                                     log::error!("whepauth error: {}", err);
-                                    Err(SessionError {
+                                    SessionError {
                                         value: errors::SessionErrorValue::AuthError(err),
-                                    })
+                                    }
                                 })?;
                             }
                             // TODO: implement <https://www.ietf.org/archive/id/draft-ietf-wish-whep-01.html#name-ice-restarts>
