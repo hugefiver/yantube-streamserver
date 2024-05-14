@@ -30,3 +30,8 @@ streamhub = { workspace = true }
 xflv = { workspace = true }
 commonlib = { workspace = true }
 auth = { workspace = true }
+
+axum = { version = "0.7.5", features = ["macros"] }
+axum-macros = "0.4.1"
+anyhow = "1.0.83"
+serde = { version = "1.0.202", features = ["derive"] }

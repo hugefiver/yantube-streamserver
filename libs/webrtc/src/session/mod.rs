@@ -1,4 +1,6 @@
 pub mod errors;
+pub mod wish_entrypoint;
+pub mod session;
 
 use streamhub::{
     define::{

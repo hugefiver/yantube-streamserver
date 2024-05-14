@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
-pub trait Auth: Send+Sync {
-    fn auth(&self, app: Option<&str>, stream: Option<&str>, query: Option<&str>) -> Result<(), AuthError>;
+pub trait Auth: Send + Sync + Clone {
+    fn auth(
+        &self, app: Option<&str>, stream: Option<&str>, query: Option<&str>,
+    ) -> Result<(), AuthError>;
 
-    fn auth_pull(&self, app: Option<&str>, stream: Option<&str>, query: Option<&str>) -> Result<(), AuthError> {
+    fn auth_pull(
+        &self, app: Option<&str>, stream: Option<&str>, query: Option<&str>,
+    ) -> Result<(), AuthError> {
         Ok(())
     }
 }
@@ -15,7 +19,6 @@ pub enum AuthError {
     #[error("no token found.")]
     NoTokenFound,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct SimpleTokenAuthenticator {
@@ -48,7 +51,7 @@ impl Auth for SimpleTokenAuthenticator {
 
         if let Some(auth_token) = &self.token {
             match query {
-                Some("") | None=> Err(AuthError::NoTokenFound),
+                Some("") | None => Err(AuthError::NoTokenFound),
                 Some(query) => {
                     let query = extract_query(query);
                     tracing::debug!(?query, "session query");
@@ -57,7 +60,7 @@ impl Auth for SimpleTokenAuthenticator {
                         None => Err(AuthError::NoTokenFound),
                         _ => Err(AuthError::TokenIsNotCorrect),
                     }
-                },
+                }
             }
         } else {
             Ok(())
@@ -65,3 +68,10 @@ impl Auth for SimpleTokenAuthenticator {
     }
 }
 
+impl Auth for () {
+    fn auth(
+        &self, _app: Option<&str>, _stream: Option<&str>, _query: Option<&str>,
+    ) -> Result<(), AuthError> {
+        Ok(())
+    }
+}
