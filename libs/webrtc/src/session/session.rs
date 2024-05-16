@@ -2,10 +2,23 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::whip::handle_whip;
 
-use super::{errors::{SessionError, SessionErrorValue}, WebRTCStreamHandler};
-use axum::{body::Body, response::{IntoResponse, Response}};
+use super::{
+    errors::{SessionError, SessionErrorValue},
+    WebRTCStreamHandler,
+};
+use axum::{
+    body::Body,
+    response::{IntoResponse, Response},
+};
 use http::{header, StatusCode};
-use streamhub::{define::{NotifyInfo, PublishType, PublisherInfo, StreamHubEvent, StreamHubEventSender, SubscribeType, SubscriberInfo}, stream::StreamIdentifier, utils::{RandomDigitCount, Uuid}};
+use streamhub::{
+    define::{
+        NotifyInfo, PublishType, PublisherInfo, StreamHubEvent, StreamHubEventSender,
+        SubscribeType, SubscriberInfo,
+    },
+    stream::StreamIdentifier,
+    utils::{RandomDigitCount, Uuid},
+};
 use tokio::sync::{oneshot, RwLock};
 use webrtc::peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection};
 
@@ -16,34 +29,46 @@ pub struct WebRTCServerSession {
     event_sender: StreamHubEventSender,
     stream_handler: Arc<WebRTCStreamHandler>,
 
+    pub app_name: String,
+    pub stream_name: String,
+
     pub session_id: Uuid,
     pub peer_connection: Option<Arc<RTCPeerConnection>>,
 }
 
 impl WebRTCServerSession {
-    pub fn new_with_id(event_sender: StreamHubEventSender, session_id: Uuid) -> Self {
+    pub fn new_with_id(
+        app_name: String, stream_name: String, event_sender: StreamHubEventSender, session_id: Uuid,
+    ) -> Self {
         Self {
             event_sender,
             stream_handler: Arc::new(WebRTCStreamHandler::default()),
+            app_name,
+            stream_name,
             session_id,
             peer_connection: None,
         }
     }
 
-    pub fn new(event_sender: StreamHubEventSender) -> Self {
-        Self::new_with_id(event_sender, Uuid::new(RandomDigitCount::default()))
+    pub fn new(app_name: String, stream_name: String, event_sender: StreamHubEventSender) -> Self {
+        Self::new_with_id(
+            app_name,
+            stream_name,
+            event_sender,
+            Uuid::new(RandomDigitCount::default()),
+        )
     }
 
     pub async fn publish_whip(
-        &mut self, app_name: String, stream_name: String, path: String,
+        &mut self, path: String,
         offer: RTCSessionDescription,
     ) -> Result<Response, SessionError> {
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
         let publish_event = StreamHubEvent::Publish {
             identifier: StreamIdentifier::WebRTC {
-                app_name,
-                stream_name,
+                app_name: self.app_name.clone(),
+                stream_name: self.stream_name.clone(),
             },
             result_sender: event_result_sender,
             info: self.get_publisher_info(),
@@ -62,8 +87,7 @@ impl WebRTCServerSession {
             Ok((session_description, peer_connection)) => {
                 self.peer_connection = Some(peer_connection);
 
-                let status_code = http::StatusCode::CREATED;
-                let mut response = Response::builder()
+                let response = Response::builder()
                     .status(StatusCode::CREATED)
                     .header(header::CONTENT_TYPE, "application/sdp")
                     .header(header::LOCATION, path)
@@ -72,26 +96,24 @@ impl WebRTCServerSession {
             }
             Err(err) => {
                 log::error!("handle whip err: {}", err);
-                
+
                 Ok(StatusCode::SERVICE_UNAVAILABLE.into_response())
             }
         }
-        
     }
 
-    fn unpublish_whip(
-        app_name: String, stream_name: String, publish_info: PublisherInfo,
-        sender: StreamHubEventSender,
+    pub fn unpublish_whip(
+        &mut self,
     ) -> Result<(), SessionError> {
         let unpublish_event = StreamHubEvent::UnPublish {
             identifier: StreamIdentifier::WebRTC {
-                app_name,
-                stream_name,
+                app_name: self.app_name.clone(),
+                stream_name: self.stream_name.clone(),
             },
-            info: publish_info,
+            info: self.get_publisher_info(),
         };
 
-        if sender.send(unpublish_event).is_err() {
+        if self.event_sender.send(unpublish_event).is_err() {
             return Err(SessionError {
                 value: SessionErrorValue::StreamHubEventSendErr,
             });
