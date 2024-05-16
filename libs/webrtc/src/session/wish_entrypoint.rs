@@ -67,18 +67,30 @@ impl<A: Auth> WishEntrypointServer<A> {
             .route(
                 "/whip",
                 post(post_whip_handler)
-                    .delete(delete_whip_handler)
                     .route_layer(middleware::from_fn_with_state(
                         state.clone(),
                         whip_auth_middleware,
-                    )),
+                    ))
+                    .delete(delete_whip_handler),
             )
             .with_state(state.clone());
 
-        // TODO: implement WHEP entrypoint
+        let whep_router = Router::new()
+            .route(
+                "/whep",
+                post(post_whep_handler)
+                    // .delete(delete_whep_handler)
+                    .route_layer(middleware::from_fn_with_state(
+                        state.clone(),
+                        whep_auth_middleware,
+                    ))
+                    .options(option_cors_all_allow),
+            )
+            .with_state(state.clone());
 
         let router = axum::Router::new()
             .merge(whip_router)
+            .merge(whep_router)
             .fallback(|| async { StatusCode::NOT_FOUND })
             .with_state(state);
 
@@ -148,6 +160,33 @@ async fn whip_auth_middleware<A: Auth>(
     next.run(req).await
 }
 
+async fn whep_auth_middleware<A: Auth>(
+    extract::State(state): extract::State<State<A>>,
+    extract::Query(par): extract::Query<EntrypointParrams>, req: extract::Request,
+    next: middleware::Next,
+) -> Response {
+    let app = par.app.as_deref();
+    let stream = par.stream.as_deref();
+
+    if matches!(app, Some("") | None) || matches!(stream, Some("") | None) {
+        return (StatusCode::BAD_REQUEST, "app or stream cannot be empty").into_response();
+    }
+
+    if let Some(auth) = state.auth {
+        let query = req.uri().query();
+        if let Err(err) = auth.auth_pull(app, stream, query) {
+            log::error!(
+                "whep auth error: app={} stream={}: {}",
+                app.unwrap_or(""),
+                stream.unwrap_or(""),
+                err
+            );
+            return StatusCode::UNAUTHORIZED.into_response();
+        }
+    };
+    next.run(req).await
+}
+
 async fn post_whip_handler<A: Auth>(
     extract::State(state): extract::State<State<A>>,
     extract::Query(par): extract::Query<EntrypointParrams>, uri: extract::OriginalUri,
@@ -188,7 +227,7 @@ async fn post_whip_handler<A: Auth>(
         }
         Err(err) => {
             log::error!("handle whip post error, {}", err);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            StatusCode::SERVICE_UNAVAILABLE.into_response()
         }
     }
 }
@@ -224,8 +263,54 @@ async fn delete_whip_handler<A: Auth>(
     let mut guard2 = session.write().await;
     if let Err(err) = guard2.unpublish_whip() {
         log::error!("unpublish whip error: {}", err);
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        return StatusCode::SERVICE_UNAVAILABLE.into_response();
     }
 
     ().into_response()
+}
+
+
+async fn post_whep_handler<A: Auth>(
+    extract::State(state): extract::State<State<A>>,
+    extract::Query(par): extract::Query<EntrypointParrams>, uri: extract::OriginalUri,
+    sdp_data: String,
+) -> Response {
+    let EntrypointParrams { app, stream, .. } = par;
+    let app = app.unwrap_or_default();
+    let stream = stream.unwrap_or_default();
+
+    if sdp_data.is_empty() {
+        return (StatusCode::BAD_REQUEST, "sdp data is empty").into_response();
+    }
+
+    let offer = match RTCSessionDescription::offer(sdp_data) {
+        Err(err) => {
+            log::error!("whip sdp offer error: {}", err);
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+        Ok(offer) => offer,
+    };
+
+    let session_id = Uuid::new(RandomDigitCount::default());
+    let path = format!(
+        "{}?app={}&stream={}&session_id={}",
+        uri.path(),
+        app,
+        stream,
+        session_id,
+    );
+    let mut session =
+        WebRTCServerSession::new_with_id(app, stream, state.event_producer, session_id);
+
+    match session.subscribe_whep(path, offer).await {
+        Ok(resp) => {
+            let mut guard = state.sessions.write().await;
+            guard.insert(session.session_id, Arc::new(RwLock::new(session)));
+            resp
+        }
+        Err(err) => {
+            log::error!("handle whip post error, {}", err);
+            StatusCode::SERVICE_UNAVAILABLE.into_response()
+        }
+    }
 }

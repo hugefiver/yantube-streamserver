@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::whip::handle_whip;
+use crate::{whep::handle_whep, whip::handle_whip};
+use crate::{whep::handle_whep, whip::handle_whip};
 
 use super::{
     errors::{SessionError, SessionErrorValue},
@@ -19,8 +20,11 @@ use streamhub::{
     stream::StreamIdentifier,
     utils::{RandomDigitCount, Uuid},
 };
-use tokio::sync::{oneshot, RwLock};
-use webrtc::peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection};
+use tokio::sync::{broadcast, oneshot, RwLock};
+use webrtc::peer_connection::{
+    peer_connection_state::RTCPeerConnectionState, sdp::session_description::RTCSessionDescription,
+    RTCPeerConnection,
+};
 
 pub type WebrtcSessionMapping = HashMap<Uuid, Arc<RwLock<WebRTCServerSession>>>;
 
@@ -60,8 +64,7 @@ impl WebRTCServerSession {
     }
 
     pub async fn publish_whip(
-        &mut self, path: String,
-        offer: RTCSessionDescription,
+        &mut self, path: String, offer: RTCSessionDescription,
     ) -> Result<Response, SessionError> {
         let (event_result_sender, event_result_receiver) = oneshot::channel();
 
@@ -102,9 +105,7 @@ impl WebRTCServerSession {
         }
     }
 
-    pub fn unpublish_whip(
-        &mut self,
-    ) -> Result<(), SessionError> {
+    pub fn unpublish_whip(&mut self) -> Result<(), SessionError> {
         let unpublish_event = StreamHubEvent::UnPublish {
             identifier: StreamIdentifier::WebRTC {
                 app_name: self.app_name.clone(),
@@ -119,6 +120,107 @@ impl WebRTCServerSession {
             });
         }
 
+        Ok(())
+    }
+
+    pub async fn subscribe_whep(
+        &mut self, path: String, offer: RTCSessionDescription,
+    ) -> Result<Response, SessionError> {
+        let subscriber_info = self.get_subscriber_info();
+
+        let (event_result_sender, event_result_receiver) = oneshot::channel();
+
+        let subscribe_event = StreamHubEvent::Subscribe {
+            identifier: StreamIdentifier::WebRTC {
+                app_name: self.app_name.clone(),
+                stream_name: self.stream_name.clone(),
+            },
+            info: subscriber_info.clone(),
+            result_sender: event_result_sender,
+        };
+
+        if self.event_sender.send(subscribe_event).is_err() {
+            return Err(SessionError {
+                value: SessionErrorValue::StreamHubEventSendErr,
+            });
+        }
+
+        let receiver = event_result_receiver.await??.0.packet_receiver.unwrap();
+
+        let (pc_state_sender, mut pc_state_receiver) = broadcast::channel(1);
+
+        let response = match handle_whep(offer, receiver, pc_state_sender).await {
+            Ok((session_description, peer_connection)) => {
+                let pc_clone = peer_connection.clone();
+
+                let app_name_out = self.app_name.clone();
+                let stream_name_out = self.stream_name.clone();
+                let subscriber_info_out = subscriber_info.clone();
+                let sender_out = self.event_sender.clone();
+
+                tokio::spawn(async move {
+                    loop {
+                        if let Ok(state) = pc_state_receiver.recv().await {
+                            log::info!("state: {}", state);
+                            match state {
+                                RTCPeerConnectionState::Disconnected
+                                | RTCPeerConnectionState::Failed => {
+                                    if let Err(err) = pc_clone.close().await {
+                                        log::error!("peer connection close error: {}", err);
+                                    }
+                                }
+                                RTCPeerConnectionState::Closed => {
+                                    if let Err(err) = Self::unsubscribe_whep(
+                                        app_name_out,
+                                        stream_name_out,
+                                        subscriber_info_out,
+                                        sender_out,
+                                    ) {
+                                        log::error!("unsubscribe whep error: {}", err);
+                                    }
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        } else {
+                            log::info!("recv");
+                        }
+                    }
+                });
+
+                self.peer_connection = Some(peer_connection);
+
+                Response::builder()
+                    .header(header::CONTENT_TYPE, "application/sdp")
+                    .header(header::ACCESS_CONTROL_EXPOSE_HEADERS, "Location")
+                    .header(header::LOCATION, path)
+                    .body(Body::from(session_description.sdp))?
+            }
+            Err(err) => {
+                log::error!("handle whep err: {}", err);
+                StatusCode::SERVICE_UNAVAILABLE.into_response()
+            }
+        };
+        Ok(response)
+    }
+
+    fn unsubscribe_whep(
+        app_name: String, stream_name: String, subscriber_info: SubscriberInfo,
+        sender: StreamHubEventSender,
+    ) -> Result<(), SessionError> {
+        let unsubscribe_event = StreamHubEvent::UnSubscribe {
+            identifier: StreamIdentifier::WebRTC {
+                app_name,
+                stream_name,
+            },
+            info: subscriber_info,
+        };
+
+        if sender.send(unsubscribe_event).is_err() {
+            return Err(SessionError {
+                value: SessionErrorValue::StreamHubEventSendErr,
+            });
+        }
         Ok(())
     }
 
