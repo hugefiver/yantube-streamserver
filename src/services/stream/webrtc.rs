@@ -17,5 +17,5 @@ pub async fn start_server(conf: &crate::config::AppConfig) -> anyhow::Result<()>
         Some(authenticator),
     );
 
-    webrtc_server.run().await.map_err(anyhow::Error::new)
+    webrtc_server.run().await
 }

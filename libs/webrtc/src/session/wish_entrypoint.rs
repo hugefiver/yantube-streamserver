@@ -19,14 +19,14 @@ use streamhub::{
     utils::{RandomDigitCount, Uuid},
 };
 use tokio::sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard};
+use tokio::net::ToSocketAddrs;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 use super::session::{WebRTCServerSession, WebrtcSessionMapping};
 
 #[derive(Clone)]
-struct WishEntrypointServer<A: Auth + 'static> {
-    pub host: String,
-    pub port: u16,
+pub struct WishEntrypointServer<Addr: ToSocketAddrs, A: Auth + 'static> {
+    pub addr: Addr,
 
     pub auth: Option<A>,
 
@@ -41,21 +41,18 @@ struct State<A: Auth> {
     pub event_producer: StreamHubEventSender,
 }
 
-impl<A: Auth> WishEntrypointServer<A> {
+impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
     pub fn new(
-        host: String, port: u16, event_producer: StreamHubEventSender, auth: Option<A>,
+        addr: Addr, event_producer: StreamHubEventSender, auth: Option<A>,
     ) -> Self {
         Self {
-            host,
-            port,
+            addr,
             auth,
             sessions: Arc::new(RwLock::new(HashMap::new())),
             event_producer,
         }
     }
-}
-
-impl<A: Auth> WishEntrypointServer<A> {
+    
     pub async fn run(&self) -> anyhow::Result<()> {
         let state = State {
             auth: self.auth.clone(),
@@ -94,7 +91,7 @@ impl<A: Auth> WishEntrypointServer<A> {
             .fallback(|| async { StatusCode::NOT_FOUND })
             .with_state(state);
 
-        let listenser = tokio::net::TcpListener::bind((self.host.as_str(), self.port)).await?;
+        let listenser = tokio::net::TcpListener::bind(&self.addr).await?;
         axum::serve(listenser, router).await?;
         Ok(())
     }

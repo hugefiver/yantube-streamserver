@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{whep::handle_whep, whip::handle_whip};
-use crate::{whep::handle_whep, whip::handle_whip};
 
 use super::{
     errors::{SessionError, SessionErrorValue},
