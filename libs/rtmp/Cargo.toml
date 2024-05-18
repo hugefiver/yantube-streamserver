@@ -20,7 +20,7 @@ sha2 = "0.10"
 # uuid = { version = "0.6.5", features = ["v4"] }
 log = "0.4"
 chrono = "0.4"
-indexmap = "1.9"
+indexmap = { workspace = true }
 async-trait = "0.1.80"
 hex = "0.4"
 serde_json = { version = "1", default-features = false, features = [

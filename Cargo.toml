@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["libs/rtmp", "libs/webrtc", "libs/streamhub", "."]
+members = ["libs/rtmp", "libs/webrtc", "libs/streamhub", "libs/flv", "."]
 
 [workspace.dependencies]
 bytesio = "0.3.2"
 streamhub = { path = "./libs/streamhub" }
 h264-decoder = "0.2.2"
-xflv = "0.4.2"
+xflv = { path = "./libs/flv" }
 commonlib = "0.1.1"
 auth = { path = "./libs/auth" }
 tokio = { version = "1.37" }
