@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use auth::Auth;
 use axum::{
@@ -9,15 +6,17 @@ use axum::{
     extract::{self},
     middleware,
     response::{IntoResponse, Response},
-    routing::{post}, Router,
+    routing::post,
+    Router,
 };
-use http::{StatusCode};
+use http::StatusCode;
 use streamhub::{
     define::StreamHubEventSender,
     utils::{RandomDigitCount, Uuid},
 };
-use tokio::sync::{RwLock};
 use tokio::net::ToSocketAddrs;
+use tokio::sync::RwLock;
+use tower_http::body::Full;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 use super::session::{WebRTCServerSession, WebrtcSessionMapping};
@@ -40,9 +39,7 @@ struct State<A: Auth> {
 }
 
 impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
-    pub fn new(
-        addr: Addr, event_producer: StreamHubEventSender, auth: Option<A>,
-    ) -> Self {
+    pub fn new(addr: Addr, event_producer: StreamHubEventSender, auth: Option<A>) -> Self {
         Self {
             addr,
             auth,
@@ -50,7 +47,7 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
             event_producer,
         }
     }
-    
+
     pub async fn run(&self) -> anyhow::Result<()> {
         let state = State {
             auth: self.auth.clone(),
@@ -88,7 +85,13 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
             .merge(whip_router)
             .merge(whep_router)
             .fallback(|| async { StatusCode::NOT_FOUND })
-            .with_state(state);
+            .with_state(state)
+            .layer(tower_http::trace::TraceLayer::new_for_http().make_span_with(|req: &extract::Request| -> tracing::Span {
+                tracing::span!(tracing::Level::INFO, "wish_entrypoint", method=%req.method(), uri=%req.uri())
+            })
+            .on_response(
+                tower_http::trace::DefaultOnResponse::new().level(tracing::Level::DEBUG)
+             ));
 
         let listenser = tokio::net::TcpListener::bind(&self.addr).await?;
         axum::serve(listenser, router).await?;
@@ -131,7 +134,10 @@ async fn option_cors_all_allow() -> Result<Response, StatusCode> {
 
 async fn cors_middleware(req: extract::Request, next: middleware::Next) -> Response {
     let mut resp = next.run(req).await;
-    resp.headers_mut().insert(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, http::HeaderValue::from_static("*"));
+    resp.headers_mut().insert(
+        http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        http::HeaderValue::from_static("*"),
+    );
     resp
 }
 
@@ -254,6 +260,7 @@ async fn delete_whip_handler<A: Auth>(
     if !guard.contains_key(&session_id) {
         return (StatusCode::OK, "session not found").into_response();
     }
+    drop(guard);
 
     let mut guard = state.sessions.write().await;
     let session = if let Some(session) = guard.remove(&session_id) {
@@ -262,7 +269,7 @@ async fn delete_whip_handler<A: Auth>(
         return (StatusCode::OK, "session not found").into_response();
     };
 
-    let mut guard2 = session.write().await;
+    let guard2 = session.read().await;
     if let Err(err) = guard2.unpublish_whip() {
         log::error!("unpublish whip error: {}", err);
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
@@ -270,7 +277,6 @@ async fn delete_whip_handler<A: Auth>(
 
     ().into_response()
 }
-
 
 async fn post_whep_handler<A: Auth>(
     extract::State(state): extract::State<State<A>>,

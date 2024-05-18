@@ -82,12 +82,14 @@ async fn main() {
     let layers = layers.with_filter(
         tracing_subscriber::filter::EnvFilter::builder()
             .with_default_directive(log_level.into())
-            .parse_lossy("tracing,".to_string() + &log_config),
+            .parse_lossy("trace,".to_string() + &log_config),
     );
     Registry::default().with(layers).init();
 
     let span = span!(Level::TRACE, "bootstrap");
     let _enter = span.enter();
+
+    tracing::debug!("bootstrap: {:?}", app_config);
 
     // register api server
     let api_cfg = app_config.server.clone();

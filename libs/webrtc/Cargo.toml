@@ -35,3 +35,5 @@ axum = { version = "0.7.5", features = ["macros"] }
 axum-macros = "0.4.1"
 anyhow = "1.0.83"
 serde = { version = "1.0.202", features = ["derive"] }
+tower-http = { version = "0.5.2", default-features = false, features = ["trace"] }
+tracing = "0.1.40"

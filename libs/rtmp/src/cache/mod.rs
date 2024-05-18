@@ -106,7 +106,7 @@ impl Cache {
         if let Some(statistic_data_sender) = &self.statistic_data_sender {
             let statistic_audio_data = StatisticData::Audio {
                 uuid: None,
-                data_size: chunk_body.len(),
+                data_size: chunk_body.len() as u64,
                 aac_packet_type: tag_header.aac_packet_type,
                 duration: 0,
             };
@@ -178,7 +178,7 @@ impl Cache {
         if let Some(statistic_data_sender) = &self.statistic_data_sender {
             let statistic_video_data = StatisticData::Video {
                 uuid: None,
-                data_size: chunk_body.len(),
+                data_size: chunk_body.len() as u64,
                 frame_count: 1,
                 is_key_frame: Some(is_key_frame),
                 duration: 0,

@@ -26,29 +26,7 @@ use webrtc::track::track_local::TrackLocalWriter;
 pub type Result<T> = std::result::Result<T, WebRTCError>;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 
-use lazy_static::lazy_static;
-
-lazy_static! {
-    static ref ICE_SERVERS: Vec<RTCIceServer> = vec![
-    RTCIceServer {
-        urls: vec![
-            "stun:10.15.0.65:3478".to_string(),
-            "turn:10.15.0.65:3478?transport=udp".to_string(),
-            "turn:10.15.0.65:3478?transport=tcp".to_string(),
-        ],
-        username: "public".to_string(),
-        credential: "123456".to_string(),
-        credential_type: RTCIceCredentialType::Password,
-    },
-    RTCIceServer {
-        urls: vec![
-            "stun:stun.l.google.com:19302".to_string(),
-            // "stun:stun.qq.com:3478".to_string(),
-            "stun:stun.syncthing.net:3478".to_string(),
-        ],
-        ..Default::default()
-    },
-];}
+use super::webrtc::ICE_SERVERS;
 
 pub async fn handle_whep(
     offer: RTCSessionDescription, mut receiver: PacketDataReceiver,

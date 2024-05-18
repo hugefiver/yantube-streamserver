@@ -20,17 +20,17 @@ pub struct VideoInfo {
     pub height: u32,
     /*used for caculate the bitrate*/
     #[serde(skip_serializing)]
-    pub recv_bytes: usize,
+    pub recv_bytes: u64,
     #[serde(rename = "bitrate(kbits/s)")]
-    pub bitrate: usize,
+    pub bitrate: u64,
     /*used for caculate the frame rate*/
     #[serde(skip_serializing)]
-    pub recv_frame_count: usize,
-    pub frame_rate: usize,
+    pub recv_frame_count: u64,
+    pub frame_rate: u64,
     /*used for caculate the GOP*/
     #[serde(skip_serializing)]
-    pub recv_frame_count_for_gop: usize,
-    pub gop: usize,
+    pub recv_frame_count_for_gop: u64,
+    pub gop: u64,
 }
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct AudioInfo {
@@ -40,9 +40,9 @@ pub struct AudioInfo {
     pub channels: u8,
     /*used for caculate the bitrate*/
     #[serde(skip_serializing)]
-    pub recv_bytes: usize,
+    pub recv_bytes: u64,
     #[serde(rename = "bitrate(kbits/s)")]
-    pub bitrate: usize,
+    pub bitrate: u64,
 }
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct StatisticsStream {
@@ -51,11 +51,11 @@ pub struct StatisticsStream {
     /*subscriber infomation */
     pub subscribers: HashMap<Uuid, StatisticSubscriber>,
     /*How many clients are subscribing to this stream.*/
-    pub subscriber_count: usize,
+    pub subscriber_count: u64,
     /*calculate upstream traffic, now equals audio and video traffic received by this server*/
-    pub total_recv_bytes: usize,
+    pub total_recv_bytes: u64,
     /*calculate downstream traffic, now equals audio and video traffic sent to all subscribers*/
-    pub total_send_bytes: usize,
+    pub total_send_bytes: u64,
 }
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct StatisticPublisher {
@@ -67,10 +67,10 @@ pub struct StatisticPublisher {
     pub remote_address: String,
     /*used for caculate the recv_bitrate*/
     #[serde(skip_serializing)]
-    pub recv_bytes: usize,
+    pub recv_bytes: u64,
     /*the bitrate at which the server receives streaming data*/
     #[serde(rename = "recv_bitrate(kbits/s)")]
-    pub recv_bitrate: usize,
+    pub recv_bitrate: u64,
 }
 
 impl StatisticPublisher {
@@ -89,12 +89,12 @@ pub struct StatisticSubscriber {
     pub sub_type: SubscribeType,
     /*used for caculate the send_bitrate*/
     #[serde(skip_serializing)]
-    pub send_bytes: usize,
+    pub send_bytes: u64,
     /*the bitrate at which the server send streaming data to a client*/
     #[serde(rename = "send_bitrate(kbits/s)")]
-    pub send_bitrate: usize,
+    pub send_bitrate: u64,
     #[serde(rename = "total_send_bytes(kbits/s)")]
-    pub total_send_bytes: usize,
+    pub total_send_bytes: u64,
 }
 
 impl StatisticsStream {
@@ -136,37 +136,40 @@ impl StatisticsCaculate {
         Self { stream, exit }
     }
 
-    async fn caculate(&mut self) {
+    async fn caculate(&mut self, seconds: u64) {
+        let _start = time::Instant::now();
         let stream_statistics_clone = &mut self.stream.lock().await;
 
         stream_statistics_clone.publisher.video.bitrate =
-            stream_statistics_clone.publisher.video.recv_bytes * 8 / 5000;
+            stream_statistics_clone.publisher.video.recv_bytes * 8 / seconds / 1000;
         stream_statistics_clone.publisher.video.recv_bytes = 0;
 
         stream_statistics_clone.publisher.video.frame_rate =
-            stream_statistics_clone.publisher.video.recv_frame_count / 5;
+            stream_statistics_clone.publisher.video.recv_frame_count / seconds;
         stream_statistics_clone.publisher.video.recv_frame_count = 0;
 
         stream_statistics_clone.publisher.audio.bitrate =
-            stream_statistics_clone.publisher.audio.recv_bytes * 8 / 5000;
+            stream_statistics_clone.publisher.audio.recv_bytes * 8 / seconds / 1000;
         stream_statistics_clone.publisher.audio.recv_bytes = 0;
 
         stream_statistics_clone.publisher.recv_bitrate =
-            stream_statistics_clone.publisher.recv_bytes * 8 / 5000;
+            stream_statistics_clone.publisher.recv_bytes * 8 / seconds / 1000;
         stream_statistics_clone.publisher.recv_bytes = 0;
 
         for (_, subscriber) in stream_statistics_clone.subscribers.iter_mut() {
-            subscriber.send_bitrate = subscriber.send_bytes * 8 / 5000;
+            subscriber.send_bitrate = subscriber.send_bytes * 8 / seconds / 1000;
             subscriber.send_bytes = 0;
         }
+        log::info!("caculate statistics cost {:?}", _start.elapsed());
     }
     pub async fn start(&mut self) {
-        let mut interval = time::interval(Duration::from_secs(5));
+        const INTERVAL: u64 = 10;
+        let mut interval = time::interval(Duration::from_secs(INTERVAL));
 
         loop {
             tokio::select! {
                _ = interval.tick() => {
-                self.caculate().await;
+                self.caculate(INTERVAL).await;
                },
                _ = self.exit.recv() => {
                     log::info!("avstatistics shutting down");

@@ -96,7 +96,7 @@ impl Common {
                             let statistic_audio_data = StatisticData::Audio {
                                 uuid: Some(self.session_id),
                                 aac_packet_type: 1,
-                                data_size,
+                                data_size: data_size as u64,
                                 duration: 0,
                             };
                             if let Err(err) = sender.send(statistic_audio_data) {
@@ -112,7 +112,7 @@ impl Common {
                             let statistic_video_data = StatisticData::Video {
                                 uuid: Some(self.session_id),
                                 frame_count: 1,
-                                data_size,
+                                data_size: data_size as u64,
                                 is_key_frame: None,
                                 duration: 0,
                             };

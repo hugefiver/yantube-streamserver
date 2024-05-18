@@ -987,13 +987,12 @@ impl StreamsHub {
     }
 
     fn unpublish(&mut self, identifier: &StreamIdentifier) -> Result<(), StreamHubError> {
-        match self.streams.get_mut(identifier) {
+        match self.streams.remove(identifier) {
             Some(producer) => {
                 let event = TransceiverEvent::UnPublish {};
                 producer.send(event).map_err(|_| StreamHubError {
                     value: StreamHubErrorValue::SendError,
                 })?;
-                self.streams.remove(identifier);
                 log::info!("unpublish remove stream, stream identifier: {}", identifier);
             }
             None => {

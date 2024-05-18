@@ -104,7 +104,7 @@ impl WebRTCServerSession {
         }
     }
 
-    pub fn unpublish_whip(&mut self) -> Result<(), SessionError> {
+    pub fn unpublish_whip(&self) -> Result<(), SessionError> {
         let unpublish_event = StreamHubEvent::UnPublish {
             identifier: StreamIdentifier::WebRTC {
                 app_name: self.app_name.clone(),

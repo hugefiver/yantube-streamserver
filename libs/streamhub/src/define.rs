@@ -112,6 +112,7 @@ impl Serialize for PublisherInfo {
 pub enum VideoCodecType {
     H264,
     H265,
+    AV1,
 }
 
 #[derive(Clone)]
@@ -319,14 +320,14 @@ pub enum StatisticData {
     },
     Audio {
         uuid: Option<Uuid>,
-        data_size: usize,
+        data_size: u64,
         aac_packet_type: u8,
         duration: usize,
     },
     Video {
         uuid: Option<Uuid>,
-        data_size: usize,
-        frame_count: usize,
+        data_size: u64,
+        frame_count: u64,
         is_key_frame: Option<bool>,
         duration: usize,
     },

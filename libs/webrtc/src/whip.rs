@@ -32,6 +32,8 @@ use webrtc::rtp_transceiver::RTCRtpTransceiverInit;
 use webrtc::util::Marshal;
 use xflv::mpeg4_aac::Mpeg4Aac;
 
+use super::webrtc::ICE_SERVERS;
+
 pub type Result<T> = std::result::Result<T, WebRTCError>;
 
 // mod nal_unit_type {
@@ -87,8 +89,7 @@ pub(crate) fn parse_rtpmap(rtpmap: &str) -> Result<Codec> {
 }
 
 pub async fn handle_whip(
-    offer: RTCSessionDescription,
-    frame_sender: Option<UnboundedSender<FrameData>>,
+    offer: RTCSessionDescription, frame_sender: Option<UnboundedSender<FrameData>>,
     packet_sender: Option<UnboundedSender<PacketData>>,
 ) -> Result<(RTCSessionDescription, Arc<RTCPeerConnection>)> {
     // Create a MediaEngine object to configure the supported codec
@@ -113,10 +114,7 @@ pub async fn handle_whip(
 
     // Prepare the configuration
     let config = RTCConfiguration {
-        ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
-            ..Default::default()
-        }],
+        ice_servers: ICE_SERVERS.clone(),
         ..Default::default()
     };
 
@@ -207,6 +205,10 @@ pub async fn handle_whip(
                                     "H265" => {
                                         video_codec = codec;
                                         vcodec = VideoCodecType::H265;
+                                    }
+                                    "AV1" => {
+                                        video_codec = codec;
+                                        vcodec = VideoCodecType::AV1;
                                     }
                                     "OPUS" => {
                                         audio_codec = codec;
