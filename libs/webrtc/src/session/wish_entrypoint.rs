@@ -1,5 +1,4 @@
 use std::{
-    borrow::{Borrow, BorrowMut},
     collections::HashMap,
     sync::Arc,
 };
@@ -7,18 +6,17 @@ use std::{
 use auth::Auth;
 use axum::{
     body,
-    extract::{self, FromRequest, Query, Request},
+    extract::{self},
     middleware,
     response::{IntoResponse, Response},
-    routing::{any, post},
-    Json, RequestExt, Router,
+    routing::{post}, Router,
 };
-use http::{StatusCode, Uri};
+use http::{StatusCode};
 use streamhub::{
     define::StreamHubEventSender,
     utils::{RandomDigitCount, Uuid},
 };
-use tokio::sync::{RwLock, RwLockMappedWriteGuard, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{RwLock};
 use tokio::net::ToSocketAddrs;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
@@ -83,6 +81,7 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
                     ))
                     .options(option_cors_all_allow),
             )
+            .route_layer(middleware::from_fn(cors_middleware))
             .with_state(state.clone());
 
         let router = axum::Router::new()
@@ -128,6 +127,12 @@ async fn option_cors_all_allow() -> Result<Response, StatusCode> {
 
     resp.body(body::Body::empty())
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR))
+}
+
+async fn cors_middleware(req: extract::Request, next: middleware::Next) -> Response {
+    let mut resp = next.run(req).await;
+    resp.headers_mut().insert(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, http::HeaderValue::from_static("*"));
+    resp
 }
 
 async fn whip_auth_middleware<A: Auth>(
