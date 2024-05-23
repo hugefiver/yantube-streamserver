@@ -83,9 +83,12 @@ impl WebRTCServerSession {
             });
         }
 
-        let sender = event_result_receiver.await??;
+        let (frame_sender, packet_sender) = match event_result_receiver.await?? {
+            (Some(a), Some(b), _c) => (a, b),
+            _ => return Ok(StatusCode::SERVICE_UNAVAILABLE.into_response()),
+        };
 
-        match handle_whip(offer, sender.0, sender.1).await {
+        match handle_whip(offer, frame_sender, packet_sender).await {
             Ok((session_description, peer_connection)) => {
                 self.peer_connection = Some(peer_connection);
 

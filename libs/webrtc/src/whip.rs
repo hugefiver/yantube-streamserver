@@ -3,6 +3,10 @@ use crate::opus2aac::Opus2AacTranscoder;
 use super::errors::WebRTCError;
 use super::errors::WebRTCErrorValue;
 use bytes::BytesMut;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
+use std::ops::ControlFlow;
+use std::str::FromStr;
 use std::sync::Arc;
 use streamhub::define::VideoCodecType;
 use streamhub::define::{FrameData, PacketData};
@@ -14,7 +18,6 @@ use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::ice_transport::ice_connection_state::RTCIceConnectionState;
-use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
@@ -43,54 +46,106 @@ pub type Result<T> = std::result::Result<T, WebRTCError>;
 //     pub const NO_IDR_FRAME: u8 = 0x01; //0x41 B/P frame
 // }
 
-mod nal_payload_type {
-    pub const H264: u8 = 96;
-    pub const OPUS: u8 = 111;
+// mod nal_payload_type {
+//     pub const H264: u8 = 96;
+//     pub const OPUS: u8 = 111;
+// }
+
+// pub(crate) fn parse_rtpmap(rtpmap: &str) -> Result<Codec> {
+//     // a=rtpmap:<payload type> <encoding name>/<clock rate>[/<encoding parameters>]
+//     let split: Vec<&str> = rtpmap.split_whitespace().collect();
+//     if split.len() != 2 {
+//         return Err(WebRTCError {
+//             value: WebRTCErrorValue::MissingWhitespace,
+//         });
+//     }
+
+//     let pt_split: Vec<&str> = split[0].split(':').collect();
+//     if pt_split.len() != 2 {
+//         return Err(WebRTCError {
+//             value: WebRTCErrorValue::MissingColon,
+//         });
+//     }
+//     let payload_type = pt_split[1].parse::<u8>()?;
+
+//     let split: Vec<&str> = split[1].split('/').collect();
+//     let name = split[0].to_string();
+//     let parts = split.len();
+//     let clock_rate = if parts > 1 {
+//         split[1].parse::<u32>()?
+//     } else {
+//         0
+//     };
+//     let encoding_parameters = if parts > 2 {
+//         split[2].to_string()
+//     } else {
+//         "".to_string()
+//     };
+
+//     Ok(Codec {
+//         payload_type,
+//         name,
+//         clock_rate,
+//         encoding_parameters,
+//         ..Default::default()
+//     })
+// }
+
+#[derive(Debug)]
+enum MediaCodec {
+    H264,
+    H265,
+    AV1,
+    AAC,
+    Opus,
+}
+enum MediaType {
+    Video,
+    Audio,
 }
 
-pub(crate) fn parse_rtpmap(rtpmap: &str) -> Result<Codec> {
-    // a=rtpmap:<payload type> <encoding name>/<clock rate>[/<encoding parameters>]
-    let split: Vec<&str> = rtpmap.split_whitespace().collect();
-    if split.len() != 2 {
-        return Err(WebRTCError {
-            value: WebRTCErrorValue::MissingWhitespace,
-        });
+impl MediaCodec {
+    #[inline]
+    pub fn media_type(&self) -> MediaType {
+        use MediaCodec::*;
+        match self {
+            H264 | H265 | AV1 => MediaType::Video,
+            AAC | Opus => MediaType::Audio,
+        }
     }
 
-    let pt_split: Vec<&str> = split[0].split(':').collect();
-    if pt_split.len() != 2 {
-        return Err(WebRTCError {
-            value: WebRTCErrorValue::MissingColon,
-        });
+    #[inline]
+    pub fn is_video(&self) -> bool {
+        matches!(self.media_type(), MediaType::Video)
     }
-    let payload_type = pt_split[1].parse::<u8>()?;
 
-    let split: Vec<&str> = split[1].split('/').collect();
-    let name = split[0].to_string();
-    let parts = split.len();
-    let clock_rate = if parts > 1 {
-        split[1].parse::<u32>()?
-    } else {
-        0
-    };
-    let encoding_parameters = if parts > 2 {
-        split[2].to_string()
-    } else {
-        "".to_string()
-    };
+    #[inline]
+    pub fn is_audio(&self) -> bool {
+        matches!(self.media_type(), MediaType::Audio)
+    }
+}
 
-    Ok(Codec {
-        payload_type,
-        name,
-        clock_rate,
-        encoding_parameters,
-        ..Default::default()
-    })
+impl FromStr for MediaCodec {
+    type Err = WebRTCError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        use MediaCodec::*;
+
+        let t = match s.to_uppercase().as_str() {
+            "H264" => H264,
+            "H265" => H265,
+            "AV1" => AV1,
+            "AAC" => AAC,
+            "OPUS" => Opus,
+            _ => return Err(WebRTCError::from(webrtc::Error::ErrCodecNotFound)),
+        };
+        Ok(t)
+    }
 }
 
 pub async fn handle_whip(
-    offer: RTCSessionDescription, frame_sender: Option<UnboundedSender<FrameData>>,
-    packet_sender: Option<UnboundedSender<PacketData>>,
+    offer: RTCSessionDescription, frame_sender: UnboundedSender<FrameData>,
+    packet_sender: UnboundedSender<PacketData>,
 ) -> Result<(RTCSessionDescription, Arc<RTCPeerConnection>)> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
@@ -141,6 +196,8 @@ pub async fn handle_whip(
         )
         .await?;
 
+    let sdp = offer.unmarshal()?;
+
     let offer_in = offer.clone();
     // Set a handler for when a new remote track starts, this handler will forward data to
     // our UDP listeners.
@@ -150,6 +207,7 @@ pub async fn handle_whip(
         // Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
         let media_ssrc = track.ssrc();
         let pc2 = pc.clone();
+        let sdp = sdp.clone();
         tokio::spawn(async move {
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
@@ -170,86 +228,86 @@ pub async fn handle_whip(
                 };
             }
         });
-        let packet_sender_clone = packet_sender.clone().unwrap();
-        let frame_sender_clone = frame_sender.clone().unwrap();
+        let packet_sender_clone = packet_sender.clone();
+        let frame_sender_clone = frame_sender.clone();
         let offer_clone = offer_in.clone();
         tokio::spawn(async move {
             let mut b = vec![0u8; 3000];
-            let mut h264_packet = H264Packet::default();
-            let mut opus_packet = OpusPacket;
+            // let mut h264_packet = H264Packet::default();
+            // let mut opus_packet = OpusPacket;
 
-            let mut video_codec = Codec::default();
-            let mut audio_codec = Codec::default();
-            let mut vcodec: VideoCodecType = VideoCodecType::H264;
-            let mut opus2aac_transcoder = Opus2AacTranscoder::new(
-                48000,
-                audiopus::Channels::Stereo,
-                48000,
-                fdk_aac::enc::ChannelMode::Stereo,
-            )
-            .unwrap();
+            // let mut video_codec = Codec::default();
+            // let mut audio_codec = Codec::default();
+            // let mut vcodec: VideoCodecType = VideoCodecType::H264;
+            // let mut opus2aac_transcoder = Opus2AacTranscoder::new(
+            //     48000,
+            //     audiopus::Channels::Stereo,
+            //     48000,
+            //     fdk_aac::enc::ChannelMode::Stereo,
+            // )
+            // .unwrap();
 
             //111 OPUS/48000/2
             //96 H264/90000
-            if let Ok(session_description) = offer_clone.unmarshal() {
-                for m in session_description.media_descriptions {
-                    for a in &m.attributes {
-                        let attr = a.to_string();
-                        if attr.starts_with("rtpmap:") {
-                            if let Ok(codec) = parse_rtpmap(&attr) {
-                                log::info!("codec: {}", codec);
-                                match codec.name.to_uppercase().as_str() {
-                                    "H264" => {
-                                        video_codec = codec;
-                                    }
-                                    "H265" => {
-                                        video_codec = codec;
-                                        vcodec = VideoCodecType::H265;
-                                    }
-                                    "AV1" => {
-                                        video_codec = codec;
-                                        vcodec = VideoCodecType::AV1;
-                                    }
-                                    "OPUS" => {
-                                        audio_codec = codec;
-                                        let channels =
-                                            match audio_codec.encoding_parameters.as_str() {
-                                                "1" => audiopus::Channels::Mono,
-                                                "2" => audiopus::Channels::Stereo,
-                                                _ => audiopus::Channels::Stereo,
-                                            };
+            // if let Ok(session_description) = offer_clone.unmarshal() {
+            //     for m in session_description.media_descriptions {
+            //         for a in &m.attributes {
+            //             let attr = a.to_string();
+            //             if attr.starts_with("rtpmap:") {
+            //                 if let Ok(codec) = parse_rtpmap(&attr) {
+            //                     log::info!("codec: {}", codec);
+            //                     match codec.name.to_uppercase().as_str() {
+            //                         "H264" => {
+            //                             video_codec = codec;
+            //                         }
+            //                         "H265" => {
+            //                             video_codec = codec;
+            //                             vcodec = VideoCodecType::H265;
+            //                         }
+            //                         "AV1" => {
+            //                             video_codec = codec;
+            //                             vcodec = VideoCodecType::AV1;
+            //                         }
+            //                         "OPUS" => {
+            //                             audio_codec = codec;
+            //                             let channels =
+            //                                 match audio_codec.encoding_parameters.as_str() {
+            //                                     "1" => audiopus::Channels::Mono,
+            //                                     "2" => audiopus::Channels::Stereo,
+            //                                     _ => audiopus::Channels::Stereo,
+            //                                 };
 
-                                        opus2aac_transcoder = Opus2AacTranscoder::new(
-                                            audio_codec.clock_rate as i32,
-                                            channels,
-                                            audio_codec.clock_rate,
-                                            fdk_aac::enc::ChannelMode::Stereo,
-                                        )
-                                        .unwrap();
-                                    }
-                                    _ => {
-                                        log::warn!("not supported codec: {}", codec);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //                             opus2aac_transcoder = Opus2AacTranscoder::new(
+            //                                 audio_codec.clock_rate as i32,
+            //                                 channels,
+            //                                 audio_codec.clock_rate,
+            //                                 fdk_aac::enc::ChannelMode::Stereo,
+            //                             )
+            //                             .unwrap();
+            //                         }
+            //                         _ => {
+            //                             log::warn!("not supported codec: {}", codec);
+            //                         }
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            let media_info = FrameData::MediaInfo {
-                media_info: streamhub::define::MediaInfo {
-                    audio_clock_rate: audio_codec.clock_rate,
-                    video_clock_rate: video_codec.clock_rate,
-                    vcodec,
-                },
-            };
+            // let media_info = FrameData::MediaInfo {
+            //     media_info: streamhub::define::MediaInfo {
+            //         audio_clock_rate: audio_codec.clock_rate,
+            //         video_clock_rate: video_codec.clock_rate,
+            //         vcodec,
+            //     },
+            // };
 
-            if let Err(err) = frame_sender_clone.send(media_info) {
-                log::error!("send media info error: {}", err);
-            } else {
-                log::info!("send media info suceess: {:?} {}", audio_codec, video_codec);
-            }
+            // if let Err(err) = frame_sender_clone.send(media_info) {
+            //     log::error!("send media info error: {}", err);
+            // } else {
+            //     log::info!("send media info suceess: {:?} {}", audio_codec, video_codec);
+            // }
 
             let _sps_sent: bool = false;
             let _pps_sent: bool = false;
@@ -257,9 +315,63 @@ pub async fn handle_whip(
 
             let mut rtp_queue = RtpQueue::new(100);
 
+            let mut high_speed_codec_map: HashMap<u8, Codec> = HashMap::new();
+
             while let Ok((rtp_packet, _)) = track.read(&mut b).await {
                 let n = rtp_packet.marshal_to(&mut b)?;
 
+                let payload_type = rtp_packet.header.payload_type;
+
+                let entry = high_speed_codec_map.entry(payload_type);
+                let codec = match entry {
+                    Entry::Occupied(ref e) => e.get(),
+                    Entry::Vacant(e) => match sdp.get_codec_for_payload_type(payload_type) {
+                        Ok(c) => e.insert(c),
+                        Err(err) => {
+                            log::error!("get codec error: {}, payload_type: {}", err, payload_type);
+                            continue;
+                        }
+                    },
+                };
+
+                let media_codec = match codec.name.parse::<MediaCodec>() {
+                    Ok(media_codec) => media_codec,
+                    Err(err) => {
+                        log::error!("not supported codec: {}, err: {}", codec.name, err);
+                        continue;
+                    }
+                };
+
+                let packet = match media_codec.media_type() {
+                    MediaType::Video => PacketData::Video {
+                        timestamp: rtp_packet.header.timestamp,
+                        data: BytesMut::from(&b[..n]),
+                    },
+                    MediaType::Audio => PacketData::Audio {
+                        timestamp: rtp_packet.header.timestamp,
+                        data: BytesMut::from(&b[..n]),
+                    },
+                };
+
+                if let Err(err) = packet_sender_clone.send(packet) {
+                    log::error!("send packet error: {}", err);
+                }
+
+                // TODO: depacketize and send video/audio packets to `frame_sender`
+
+                match media_codec {
+                    MediaCodec::H264 => {
+                        // TODO
+                    }
+                    MediaCodec::Opus => {
+                        // TODO
+                    }
+                    c => {
+                        log::error!("codec {:?} not implemented yet", c);
+                    }
+                }
+
+                /*
                 match rtp_packet.header.payload_type {
                     //video h264
                     nal_payload_type::H264 => {
@@ -362,10 +474,10 @@ pub async fn handle_whip(
                         }
                     }
                     _ => {}
-                }
+                } */
             }
 
-            Result::<()>::Ok(())
+            Result::Ok(())
         });
 
         Box::pin(async {})
