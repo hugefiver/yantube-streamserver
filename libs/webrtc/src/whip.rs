@@ -196,9 +196,9 @@ pub async fn handle_whip(
         )
         .await?;
 
+    // let offer_in = offer.clone();
     let sdp = offer.unmarshal()?;
 
-    let offer_in = offer.clone();
     // Set a handler for when a new remote track starts, this handler will forward data to
     // our UDP listeners.
     // In your application this is where you would handle/process audio/video
@@ -229,8 +229,8 @@ pub async fn handle_whip(
             }
         });
         let packet_sender_clone = packet_sender.clone();
-        let frame_sender_clone = frame_sender.clone();
-        let offer_clone = offer_in.clone();
+        // let frame_sender_clone = frame_sender.clone();
+        // let offer_clone = offer_in.clone();
         tokio::spawn(async move {
             let mut b = vec![0u8; 3000];
             // let mut h264_packet = H264Packet::default();
@@ -311,9 +311,9 @@ pub async fn handle_whip(
 
             let _sps_sent: bool = false;
             let _pps_sent: bool = false;
-            let mut aac_asc_sent: bool = false;
+            // let mut aac_asc_sent: bool = false;
 
-            let mut rtp_queue = RtpQueue::new(100);
+            // let mut rtp_queue = RtpQueue::new(100);
 
             let mut high_speed_codec_map: HashMap<u8, Codec> = HashMap::new();
 
@@ -358,18 +358,20 @@ pub async fn handle_whip(
                 }
 
                 // TODO: depacketize and send video/audio packets to `frame_sender`
+                // ** Maybe `frame_sender` not used in WebRTC? **
+                // ** I wont implement it nearly. **
 
-                match media_codec {
-                    MediaCodec::H264 => {
-                        // TODO
-                    }
-                    MediaCodec::Opus => {
-                        // TODO
-                    }
-                    c => {
-                        log::error!("codec {:?} not implemented yet", c);
-                    }
-                }
+                // match media_codec {
+                //     MediaCodec::H264 => {
+                //         // TODO
+                //     }
+                //     MediaCodec::Opus => {
+                //         // TODO
+                //     }
+                //     c => {
+                //         log::error!("codec {:?} not implemented yet", c);
+                //     }
+                // }
 
                 /*
                 match rtp_packet.header.payload_type {

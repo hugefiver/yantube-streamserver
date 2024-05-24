@@ -16,7 +16,6 @@ use streamhub::{
 };
 use tokio::net::ToSocketAddrs;
 use tokio::sync::RwLock;
-use tower_http::body::Full;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 
 use super::session::{WebRTCServerSession, WebrtcSessionMapping};
