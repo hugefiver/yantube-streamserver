@@ -202,32 +202,34 @@ pub async fn handle_whip(
     // Set a handler for when a new remote track starts, this handler will forward data to
     // our UDP listeners.
     // In your application this is where you would handle/process audio/video
-    let pc = Arc::downgrade(&peer_connection);
+    
+    // let pc = Arc::downgrade(&peer_connection);
     peer_connection.on_track(Box::new(move |track, _, _| {
         // Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
-        let media_ssrc = track.ssrc();
-        let pc2 = pc.clone();
-        let sdp = sdp.clone();
-        tokio::spawn(async move {
-            let mut result = Result::<usize>::Ok(0);
-            while result.is_ok() {
-                let timeout = tokio::time::sleep(Duration::from_secs(3));
-                tokio::pin!(timeout);
+        // let media_ssrc = track.ssrc();
+        // let pc2 = pc.clone();
+        // tokio::spawn(async move {
+        //     let mut result = Result::<usize>::Ok(0);
+        //     while result.is_ok() {
+        //         let timeout = tokio::time::sleep(Duration::from_secs(3));
+        //         // tokio::pin!(timeout);
 
-                tokio::select! {
-                    _ = timeout.as_mut() =>{
-                        if let Some(pc) = pc2.upgrade(){
-                            result = pc.write_rtcp(&[Box::new(PictureLossIndication{
-                                sender_ssrc: 0,
-                                media_ssrc,
-                            })]).await.map_err(Into::into);
-                        }else{
-                            break;
-                        }
-                    }
-                };
-            }
-        });
+        //         tokio::select! {
+        //             _ = timeout =>{
+        //                 if let Some(pc) = pc2.upgrade(){
+        //                     result = pc.write_rtcp(&[Box::new(PictureLossIndication{
+        //                         sender_ssrc: 0,
+        //                         media_ssrc,
+        //                     })]).await.map_err(Into::into);
+        //                 }else{
+        //                     break;
+        //                 }
+        //             }
+        //         };
+        //     }
+        // });
+
+        let sdp = sdp.clone();
         let packet_sender_clone = packet_sender.clone();
         // let frame_sender_clone = frame_sender.clone();
         // let offer_clone = offer_in.clone();
