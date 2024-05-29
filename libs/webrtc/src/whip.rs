@@ -96,6 +96,9 @@ enum MediaCodec {
     H264,
     H265,
     AV1,
+    VP8,
+    VP9,
+
     AAC,
     Opus,
 }
@@ -109,7 +112,7 @@ impl MediaCodec {
     pub fn media_type(&self) -> MediaType {
         use MediaCodec::*;
         match self {
-            H264 | H265 | AV1 => MediaType::Video,
+            H264 | H265 | AV1 | VP8 | VP9 => MediaType::Video,
             AAC | Opus => MediaType::Audio,
         }
     }
