@@ -6,6 +6,7 @@ use super::{
     errors::{SessionError, SessionErrorValue},
     WebRTCStreamHandler,
 };
+use anyhow::anyhow;
 use axum::{
     body::Body,
     response::{IntoResponse, Response},
@@ -223,6 +224,16 @@ impl WebRTCServerSession {
                 value: SessionErrorValue::StreamHubEventSendErr,
             });
         }
+        Ok(())
+    }
+
+    pub async fn patch_whep(&self, offer: RTCSessionDescription) -> anyhow::Result<()> {
+        let Some(pc) = &self.peer_connection else {
+            return Err(anyhow!("peer connection not found"));
+        };
+        
+        pc.set_remote_description(offer).await?;
+
         Ok(())
     }
 

@@ -75,7 +75,8 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
                         state.clone(),
                         whep_auth_middleware,
                     ))
-                    .options(option_cors_all_allow),
+                    .options(option_cors_all_allow)
+                    .patch(patch_whep_handler),
             )
             .route_layer(middleware::from_fn(cors_middleware))
             .with_state(state.clone());
@@ -318,6 +319,51 @@ async fn post_whep_handler<A: Auth>(
         Err(err) => {
             log::error!("handle whip post error, {}", err);
             StatusCode::SERVICE_UNAVAILABLE.into_response()
+        }
+    }
+}
+
+async fn patch_whep_handler<A: Auth>(
+    extract::State(state): extract::State<State<A>>,
+    extract::Query(par): extract::Query<EntrypointParrams>, hs: http::HeaderMap, sdp_data: String,
+) -> Response {
+    if !hs
+        .get(http::header::CONTENT_TYPE)
+        .is_some_and(|ct| ct.eq("application/trickle-ice-sdpfrag"))
+    {
+        return (StatusCode::BAD_REQUEST, "invalid content type").into_response();
+    }
+
+    if sdp_data.is_empty() {
+        return (StatusCode::BAD_REQUEST, "sdp data is empty").into_response();
+    }
+
+    // let app = par.app.unwrap_or_default();
+    // let stream = par.stream.unwrap_or_default();
+    let session_id = par.session_id.unwrap_or_default();
+    let Some(session_id) = Uuid::from_str2(&session_id) else {
+        return (StatusCode::BAD_REQUEST, "session_id is not valid").into_response();
+    };
+
+    let offer = match RTCSessionDescription::offer(sdp_data) {
+        Err(err) => {
+            log::error!("whep sdp offer error: {}", err);
+            return StatusCode::BAD_REQUEST.into_response();
+        }
+        Ok(offer) => offer,
+    };
+
+    let guard = state.sessions.read().await;
+    let Some(session) = guard.get(&session_id).cloned() else {
+        return (StatusCode::NOT_FOUND, "session not found").into_response();
+    };
+
+    let guard = session.read().await;
+    match guard.patch_whep(offer).await {
+        Ok(_) => StatusCode::CREATED.into_response(),
+        Err(err) => {
+            log::error!("handle whep patch error, {}", err);
+            StatusCode::NO_CONTENT.into_response()
         }
     }
 }

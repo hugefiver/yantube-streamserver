@@ -202,7 +202,7 @@ pub async fn handle_whip(
     // Set a handler for when a new remote track starts, this handler will forward data to
     // our UDP listeners.
     // In your application this is where you would handle/process audio/video
-    
+
     // let pc = Arc::downgrade(&peer_connection);
     peer_connection.on_track(Box::new(move |track, _, _| {
         // Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
@@ -505,13 +505,18 @@ pub async fn handle_whip(
     peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
         log::info!("Peer Connection State has changed: {s}");
 
-        if s == RTCPeerConnectionState::Failed {
-            // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-            // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-            // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-            println!("Peer Connection has gone to failed exiting: Done forwarding");
+        match s {
+            RTCPeerConnectionState::Failed => {
+                // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+                // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+                // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+                println!("Peer Connection has gone to failed exiting: Done forwarding");
+            }
+            RTCPeerConnectionState::Closed => {
+                // TODO: disconnect all clients
+            }
+            _ => {}
         }
-
         Box::pin(async {})
     }));
 
