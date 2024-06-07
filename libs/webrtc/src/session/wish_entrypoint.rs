@@ -10,10 +10,7 @@ use axum::{
     Router,
 };
 use http::StatusCode;
-use streamhub::{
-    define::StreamHubEventSender,
-    utils::{RandomDigitCount, Uuid},
-};
+use streamhub::{define::StreamHubEventSender, utils::Uuid};
 use tokio::net::ToSocketAddrs;
 use tokio::sync::RwLock;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
@@ -216,7 +213,7 @@ async fn post_whip_handler<A: Auth>(
         Ok(offer) => offer,
     };
 
-    let session_id = Uuid::new(RandomDigitCount::default());
+    let session_id = Uuid::new();
     let path = format!(
         "{}?app={}&stream={}&session_id={}",
         uri.path(),
@@ -299,7 +296,7 @@ async fn post_whep_handler<A: Auth>(
         Ok(offer) => offer,
     };
 
-    let session_id = Uuid::new(RandomDigitCount::default());
+    let session_id = Uuid::new();
     let path = format!(
         "{}?app={}&stream={}&session_id={}",
         uri.path(),

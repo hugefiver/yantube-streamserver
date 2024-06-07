@@ -2,10 +2,7 @@ use streamhub::define::{DataSender, StatisticData, StatisticDataSender};
 use tokio::sync::oneshot;
 
 use {
-    super::{
-        define::SessionType,
-        errors::{SessionError},
-    },
+    super::{define::SessionType, errors::SessionError},
     crate::{
         cache::errors::CacheError,
         cache::Cache,
@@ -59,16 +56,14 @@ pub struct Common {
 
 impl Common {
     pub fn new(
-        packetizer: Option<ChunkPacketizer>,
-        event_producer: StreamHubEventSender,
-        session_type: SessionType,
-        remote_addr: Option<SocketAddr>,
+        packetizer: Option<ChunkPacketizer>, event_producer: StreamHubEventSender,
+        session_type: SessionType, remote_addr: Option<SocketAddr>,
     ) -> Self {
         //only used for init,since I don't found a better way to deal with this.
         let (init_producer, init_consumer) = mpsc::unbounded_channel();
 
         Self {
-            session_id: Uuid::new(streamhub::utils::RandomDigitCount::Four),
+            session_id: Uuid::new(),
             packetizer,
 
             data_sender: init_producer,
@@ -177,9 +172,7 @@ impl Common {
     }
 
     pub async fn send_metadata(
-        &mut self,
-        data: BytesMut,
-        timestamp: u32,
+        &mut self, data: BytesMut, timestamp: u32,
     ) -> Result<(), SessionError> {
         let mut chunk_info = ChunkInfo::new(
             csid_type::DATA_AMF0_AMF3,
@@ -199,9 +192,7 @@ impl Common {
     }
 
     pub async fn on_video_data(
-        &mut self,
-        data: &mut BytesMut,
-        timestamp: &u32,
+        &mut self, data: &mut BytesMut, timestamp: &u32,
     ) -> Result<(), SessionError> {
         let channel_data = FrameData::Video {
             timestamp: *timestamp,
@@ -224,9 +215,7 @@ impl Common {
     }
 
     pub async fn on_audio_data(
-        &mut self,
-        data: &mut BytesMut,
-        timestamp: &u32,
+        &mut self, data: &mut BytesMut, timestamp: &u32,
     ) -> Result<(), SessionError> {
         let channel_data = FrameData::Audio {
             timestamp: *timestamp,
@@ -249,9 +238,7 @@ impl Common {
     }
 
     pub async fn on_meta_data(
-        &mut self,
-        data: &mut BytesMut,
-        timestamp: &u32,
+        &mut self, data: &mut BytesMut, timestamp: &u32,
     ) -> Result<(), SessionError> {
         let channel_data = FrameData::MetaData {
             timestamp: *timestamp,
@@ -260,9 +247,7 @@ impl Common {
 
         match self.data_sender.send(channel_data) {
             Ok(_) => {}
-            Err(_) => {
-                return Err(SessionError::SendFrameDataErr)
-            }
+            Err(_) => return Err(SessionError::SendFrameDataErr),
         }
 
         self.stream_handler.save_metadata(data, *timestamp).await;
@@ -320,9 +305,7 @@ impl Common {
 
     /*Subscribe from local channels and then send data to retmote common player or local RTMP relay push client*/
     pub async fn subscribe_from_channels(
-        &mut self,
-        app_name: String,
-        stream_name: String,
+        &mut self, app_name: String, stream_name: String,
     ) -> Result<(), SessionError> {
         log::info!(
             "subscribe_from_channels, app_name: {} stream_name: {} subscribe_id: {}",
@@ -372,9 +355,7 @@ impl Common {
     }
 
     pub async fn unsubscribe_from_channels(
-        &mut self,
-        app_name: String,
-        stream_name: String,
+        &mut self, app_name: String, stream_name: String,
     ) -> Result<(), SessionError> {
         let identifier = StreamIdentifier::Rtmp {
             app_name,
@@ -394,10 +375,7 @@ impl Common {
 
     /*Begin to receive stream data from remote RTMP push client or local RTMP relay pull client*/
     pub async fn publish_to_channels(
-        &mut self,
-        app_name: String,
-        stream_name: String,
-        gop_num: usize,
+        &mut self, app_name: String, stream_name: String, gop_num: usize,
     ) -> Result<(), SessionError> {
         let (event_result_sender, event_result_receiver) = oneshot::channel();
         let info = self.get_publisher_info();
@@ -440,9 +418,7 @@ impl Common {
     }
 
     pub async fn unpublish_to_channels(
-        &mut self,
-        app_name: String,
-        stream_name: String,
+        &mut self, app_name: String, stream_name: String,
     ) -> Result<(), SessionError> {
         log::info!(
             "unpublish_to_channels, app_name:{}, stream_name:{}",
@@ -500,9 +476,7 @@ impl RtmpStreamHandler {
     }
 
     pub async fn save_video_data(
-        &self,
-        chunk_body: &BytesMut,
-        timestamp: u32,
+        &self, chunk_body: &BytesMut, timestamp: u32,
     ) -> Result<(), CacheError> {
         if let Some(cache) = &mut *self.cache.lock().await {
             cache.save_video_data(chunk_body, timestamp).await?;
@@ -511,9 +485,7 @@ impl RtmpStreamHandler {
     }
 
     pub async fn save_audio_data(
-        &self,
-        chunk_body: &BytesMut,
-        timestamp: u32,
+        &self, chunk_body: &BytesMut, timestamp: u32,
     ) -> Result<(), CacheError> {
         if let Some(cache) = &mut *self.cache.lock().await {
             cache.save_audio_data(chunk_body, timestamp).await?;
@@ -531,9 +503,7 @@ impl RtmpStreamHandler {
 #[async_trait]
 impl TStreamHandler for RtmpStreamHandler {
     async fn send_prior_data(
-        &self,
-        data_sender: DataSender,
-        sub_type: SubscribeType,
+        &self, data_sender: DataSender, sub_type: SubscribeType,
     ) -> Result<(), StreamHubError> {
         let sender = match data_sender {
             DataSender::Frame { sender } => sender,

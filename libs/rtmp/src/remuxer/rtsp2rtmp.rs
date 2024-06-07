@@ -21,7 +21,7 @@ use {
             SubscribeType, SubscriberInfo,
         },
         stream::StreamIdentifier,
-        utils::{RandomDigitCount, Uuid},
+        utils::Uuid,
     },
     tokio::{sync::mpsc, time::sleep},
 };
@@ -71,7 +71,7 @@ impl Rtsp2RtmpRemuxerSession {
             data_receiver: data_consumer,
             event_producer: event_producer.clone(),
 
-            subscribe_id: Uuid::new(RandomDigitCount::Four),
+            subscribe_id: Uuid::new(),
 
             video_clock_rate: 1000,
             audio_clock_rate: 1000,
@@ -208,9 +208,7 @@ impl Rtsp2RtmpRemuxerSession {
     }
 
     async fn on_rtsp_audio(
-        &mut self,
-        audio_data: &BytesMut,
-        timestamp: u32,
+        &mut self, audio_data: &BytesMut, timestamp: u32,
     ) -> Result<(), RtmpRemuxerError> {
         if self.base_audio_timestamp == 0 {
             self.base_audio_timestamp = timestamp;
@@ -228,9 +226,7 @@ impl Rtsp2RtmpRemuxerSession {
     }
 
     async fn on_rtsp_video(
-        &mut self,
-        nalus: &mut BytesMut,
-        timestamp: u32,
+        &mut self, nalus: &mut BytesMut, timestamp: u32,
     ) -> Result<(), RtmpRemuxerError> {
         if self.base_video_timestamp == 0 {
             self.base_video_timestamp = timestamp;

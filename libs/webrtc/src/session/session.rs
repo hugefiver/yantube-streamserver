@@ -18,7 +18,7 @@ use streamhub::{
         SubscribeType, SubscriberInfo,
     },
     stream::StreamIdentifier,
-    utils::{RandomDigitCount, Uuid},
+    utils::Uuid,
 };
 use tokio::sync::{broadcast, oneshot, RwLock};
 use webrtc::peer_connection::{
@@ -55,12 +55,7 @@ impl WebRTCServerSession {
     }
 
     pub fn new(app_name: String, stream_name: String, event_sender: StreamHubEventSender) -> Self {
-        Self::new_with_id(
-            app_name,
-            stream_name,
-            event_sender,
-            Uuid::new(RandomDigitCount::default()),
-        )
+        Self::new_with_id(app_name, stream_name, event_sender, Uuid::new())
     }
 
     pub async fn publish_whip(
@@ -231,7 +226,7 @@ impl WebRTCServerSession {
         let Some(pc) = &self.peer_connection else {
             return Err(anyhow!("peer connection not found"));
         };
-        
+
         pc.set_remote_description(offer).await?;
 
         Ok(())

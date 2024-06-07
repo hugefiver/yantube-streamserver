@@ -29,6 +29,7 @@ serde = { workspace = true, features = ["derive", "rc"] }
 indexmap = { workspace = true }
 bytesio = { workspace = true }
 xflv = { workspace = true }
+uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 
 [dependencies.tokio]
 workspace = true
