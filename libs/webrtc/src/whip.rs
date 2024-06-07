@@ -162,7 +162,13 @@ pub async fn handle_whip(
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m)?;
+    registry = super::webrtc_interceptors::apply_default_interceptors(registry, &mut m)?;
+    registry = super::webrtc_interceptors::configure_twcc_receiver_only_with_receiver(
+        registry,
+        &mut m,
+        webrtc::interceptor::twcc::receiver::ReceiverBuilder::default()
+            .with_interval(Duration::from_millis(500)),
+    )?;
 
     // Create the API object with the MediaEngine
     let api = APIBuilder::new()
