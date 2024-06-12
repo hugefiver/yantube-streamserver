@@ -167,7 +167,7 @@ pub async fn handle_whip(
         registry,
         &mut m,
         webrtc::interceptor::twcc::receiver::ReceiverBuilder::default()
-            .with_interval(Duration::from_millis(500)),
+            .with_interval(Duration::from_millis(200)),
     )?;
 
     // Create the API object with the MediaEngine
