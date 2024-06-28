@@ -55,6 +55,7 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
             .route(
                 "/whip",
                 post(post_whip_handler)
+                    .patch(patch_whip_handler)
                     .route_layer(middleware::from_fn_with_state(
                         state.clone(),
                         whip_auth_middleware,
@@ -73,7 +74,7 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
                         whep_auth_middleware,
                     ))
                     .options(option_cors_all_allow)
-                    .patch(patch_whep_handler),
+                    // .patch(patch_whep_handler),
             )
             .route_layer(middleware::from_fn(cors_middleware))
             .with_state(state.clone());
@@ -328,7 +329,7 @@ async fn patch_whep_handler<A: Auth>(
         .get(http::header::CONTENT_TYPE)
         .is_some_and(|ct| ct.eq("application/trickle-ice-sdpfrag"))
     {
-        return (StatusCode::BAD_REQUEST, "invalid content type").into_response();
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type").into_response();
     }
 
     if sdp_data.is_empty() {
@@ -363,4 +364,24 @@ async fn patch_whep_handler<A: Auth>(
             StatusCode::NO_CONTENT.into_response()
         }
     }
+}
+
+async fn patch_whip_handler<A: Auth>(
+    extract::State(_state): extract::State<State<A>>,
+    hs: http::HeaderMap,
+    sdp_data: String,
+) -> Response {
+
+    if !hs
+        .get(http::header::CONTENT_TYPE)
+        .is_some_and(|ct| ct.eq("application/trickle-ice-sdpfrag"))
+    {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type").into_response();
+    }
+
+    if sdp_data.is_empty() {
+        return (StatusCode::BAD_REQUEST, "sdp data is empty").into_response();
+    }
+
+    StatusCode::UNPROCESSABLE_ENTITY.into_response()
 }

@@ -3,6 +3,7 @@ use crate::opus2aac::Opus2AacTranscoder;
 use super::errors::WebRTCError;
 use super::errors::WebRTCErrorValue;
 use bytes::BytesMut;
+use tokio::sync::RwLock;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::ops::ControlFlow;
@@ -149,6 +150,7 @@ impl FromStr for MediaCodec {
 pub async fn handle_whip(
     offer: RTCSessionDescription, frame_sender: UnboundedSender<FrameData>,
     packet_sender: UnboundedSender<PacketData>,
+    stream_codecs: Arc<RwLock<HashMap<String, Codec>>>,
 ) -> Result<(RTCSessionDescription, Arc<RTCPeerConnection>)> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();

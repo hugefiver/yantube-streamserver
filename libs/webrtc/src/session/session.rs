@@ -21,9 +21,12 @@ use streamhub::{
     utils::Uuid,
 };
 use tokio::sync::{broadcast, oneshot, RwLock};
-use webrtc::peer_connection::{
-    peer_connection_state::RTCPeerConnectionState, sdp::session_description::RTCSessionDescription,
-    RTCPeerConnection,
+use webrtc::{
+    peer_connection::{
+        peer_connection_state::RTCPeerConnectionState,
+        sdp::session_description::RTCSessionDescription, RTCPeerConnection,
+    },
+    sdp::util::Codec,
 };
 
 pub type WebrtcSessionMapping = HashMap<Uuid, Arc<RwLock<WebRTCServerSession>>>;
@@ -38,6 +41,7 @@ pub struct WebRTCServerSession {
 
     pub session_id: Uuid,
     pub peer_connection: Option<Arc<RTCPeerConnection>>,
+    pub stream_codecs: Arc<RwLock<HashMap<String, Codec>>>,
 }
 
 impl WebRTCServerSession {
@@ -51,6 +55,7 @@ impl WebRTCServerSession {
             stream_name,
             session_id,
             peer_connection: None,
+            stream_codecs: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
@@ -84,7 +89,7 @@ impl WebRTCServerSession {
             _ => return Ok(StatusCode::SERVICE_UNAVAILABLE.into_response()),
         };
 
-        match handle_whip(offer, frame_sender, packet_sender).await {
+        match handle_whip(offer, frame_sender, packet_sender, self.stream_codecs.clone()).await {
             Ok((session_description, peer_connection)) => {
                 self.peer_connection = Some(peer_connection);
 
@@ -227,6 +232,8 @@ impl WebRTCServerSession {
             return Err(anyhow!("peer connection not found"));
         };
 
+        // let old = pc.remote_description().await.ok_or(anyhow!("old description not found"))?;
+        
         pc.set_remote_description(offer).await?;
 
         Ok(())
