@@ -23,8 +23,7 @@ use streamhub::{
 use tokio::sync::{broadcast, oneshot, RwLock};
 use webrtc::{
     peer_connection::{
-        peer_connection_state::RTCPeerConnectionState,
-        sdp::session_description::RTCSessionDescription, RTCPeerConnection,
+        offer_answer_options::RTCAnswerOptions, peer_connection_state::RTCPeerConnectionState, sdp::session_description::RTCSessionDescription, RTCPeerConnection
     },
     sdp::util::Codec,
 };
@@ -237,6 +236,18 @@ impl WebRTCServerSession {
         pc.set_remote_description(offer).await?;
 
         Ok(())
+    }
+
+    pub async fn patch_whip(&self, offer: RTCSessionDescription) -> anyhow::Result<Response> {
+        let Some(pc) = &self.peer_connection else {
+            return Err(anyhow!("peer connection not found"));
+        };
+
+        pc.set_remote_description(offer).await?;
+
+        let ans = pc.create_answer(Some(RTCAnswerOptions::default())).await;
+
+        Ok((ans?.sdp).into_response())
     }
 
     fn get_subscriber_info(&self) -> SubscriberInfo {
