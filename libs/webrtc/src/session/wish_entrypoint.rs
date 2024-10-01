@@ -56,7 +56,7 @@ impl<Addr: ToSocketAddrs, A: Auth> WishEntrypointServer<Addr, A> {
             .route(
                 "/whip",
                 post(post_whip_handler)
-                    .patch(patch_whip_handler)
+                    // .patch(patch_whip_handler)
                     .route_layer(middleware::from_fn_with_state(
                         state.clone(),
                         whip_auth_middleware,
