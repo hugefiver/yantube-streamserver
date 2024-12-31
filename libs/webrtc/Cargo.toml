@@ -10,18 +10,18 @@ repository = "https://github.com/harlanc/xiu"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indexmap = "2.2"
-http = "1.1"
+indexmap = "2.7"
+http = "1.2"
 byteorder = "1.5"
-bytes = "1.6"
+bytes = "1.9"
 failure = "0.1.8"
 log = "0.4"
 webrtc = "0.11.0"
-async-trait = "0.1.80"
+async-trait = "0.1.83"
 fdk-aac = "0.6.0"
 audiopus = "0.3.0-rc.0"
-thiserror = "1.0.58"
-lazy_static = "1.4.0"
+thiserror = "1.0.69"
+lazy_static = "1.5.0"
 
 tokio = { workspace = true }
 
@@ -31,9 +31,9 @@ xflv = { workspace = true }
 commonlib = { workspace = true }
 auth = { workspace = true }
 
-axum = { version = "0.7.5", features = ["macros"] }
-axum-macros = "0.4.1"
-anyhow = "1.0.83"
-serde = { version = "1.0.202", features = ["derive"] }
+axum = { version = "0.7.9", features = ["macros"] }
+axum-macros = "0.4.2"
+anyhow = "1.0.95"
+serde = { version = "1.0.217", features = ["derive"] }
 tower-http = { version = "0.5.2", default-features = false, features = ["trace"] }
-tracing = "0.1.40"
+tracing = "0.1.41"

@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.5"
-bytes = "1.6"
+bytes = "1.9"
 rand = "0.3"
 failure = "0.1.8"
 hmac = "0.12"
@@ -21,7 +21,7 @@ sha2 = "0.10"
 log = "0.4"
 chrono = "0.4"
 indexmap = { workspace = true }
-async-trait = "0.1.80"
+async-trait = "0.1.83"
 hex = "0.4"
 serde_json = { version = "1", default-features = false, features = [
     "alloc",
@@ -30,7 +30,7 @@ serde_json = { version = "1", default-features = false, features = [
 ] }
 serde = { workspace = true, features = ["derive", "rc"] }
 
-thiserror = "1.0.58"
+thiserror = "1.0.69"
 
 bytesio = { workspace = true }
 streamhub = { workspace = true }

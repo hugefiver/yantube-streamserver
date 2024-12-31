@@ -11,8 +11,8 @@ keywords = ["flv", "video", "streaming"]
 edition = "2018"
 
 [dependencies]
-byteorder = "1.4.2"
-bytes = "1.6"
+byteorder = "1.5.0"
+bytes = "1.9"
 failure = "0.1.8"
 log = "0.4"
 
@@ -21,4 +21,4 @@ indexmap = { workspace = true }
 
 bytesio = { workspace = true }
 # TODO: clone this crate
-h264-decoder = "0.2.3"
+h264-decoder = "0.2.4"
