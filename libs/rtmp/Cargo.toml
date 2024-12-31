@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 byteorder = "1.5"
 bytes = "1.9"
-rand = "0.3"
+rand = "0.8"
 failure = "0.1.8"
 hmac = "0.12"
 sha2 = "0.10"
@@ -30,7 +30,7 @@ serde_json = { version = "1", default-features = false, features = [
 ] }
 serde = { workspace = true, features = ["derive", "rc"] }
 
-thiserror = "1.0.69"
+thiserror = "2.0.9"
 
 bytesio = { workspace = true }
 streamhub = { workspace = true }

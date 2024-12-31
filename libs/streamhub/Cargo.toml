@@ -17,7 +17,7 @@ rand = "0.8"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 #use vendored feature to enable cross compile for openssl
-reqwest = { version = "0.11.27", features = ["native-tls-vendored"] }
+reqwest = { version = "0.12.11", features = ["native-tls-vendored"] }
 async-trait = "0.1.83"
 serde_json = { version = "1", default-features = false, features = [
     "alloc",

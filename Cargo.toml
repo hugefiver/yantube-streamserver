@@ -20,7 +20,7 @@ serde = "1.0.217"
 [dependencies]
 anyhow = { version = "1.0.95", features = ["backtrace"] }
 clap = { version = "4.5.23", features = ["derive"] }
-config = { version = "0.14.1", features = ["toml"] }
+config = { version = "0.15.4", features = ["toml"] }
 dirs = "5.0.1"
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = [
@@ -31,7 +31,7 @@ tokio = { workspace = true, features = [
     "io-util",
     "tracing",
 ] }
-tonic = "0.11.0"
+tonic = "0.12.3"
 tracing = "0.1.41"
 tracing-appender = "0.2.3"
 tracing-subscriber = { version = "0.3.19", features = [
@@ -45,13 +45,13 @@ rtmp = { path = "./libs/rtmp" }
 xwebrtc = { path = "./libs/webrtc" }
 auth = { path = "./libs/auth" }
 streamhub = { workspace = true }
-thiserror = "1.0.69"
+thiserror = "2.0.9"
 url = "2.5.4"
 tracing-log = "0.2.0"
-prost = "0.12.6"
+prost = "0.13.4"
 
 [build-dependencies]
-tonic-build = "0.11.0"
+tonic-build = "0.12.3"
 
 # [package.metadata.vcpkg]
 # dependencies = ["ffmpeg[avformat,avcodec,vpx,x264,x265]"]

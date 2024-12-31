@@ -16,11 +16,11 @@ byteorder = "1.5"
 bytes = "1.9"
 failure = "0.1.8"
 log = "0.4"
-webrtc = "0.11.0"
+webrtc = "0.12.0"
 async-trait = "0.1.83"
-fdk-aac = "0.6.0"
+fdk-aac = "0.7.0"
 audiopus = "0.3.0-rc.0"
-thiserror = "1.0.69"
+thiserror = "2.0.9"
 lazy_static = "1.5.0"
 
 tokio = { workspace = true }
@@ -35,5 +35,5 @@ axum = { version = "0.7.9", features = ["macros"] }
 axum-macros = "0.4.2"
 anyhow = "1.0.95"
 serde = { version = "1.0.217", features = ["derive"] }
-tower-http = { version = "0.5.2", default-features = false, features = ["trace"] }
+tower-http = { version = "0.6.2", default-features = false, features = ["trace"] }
 tracing = "0.1.41"
